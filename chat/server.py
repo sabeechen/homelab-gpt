@@ -1,0 +1,187 @@
+import aiohttp.web as web
+import aiohttp
+import os
+import openai
+import functools
+import asyncio
+import json
+import threading
+
+from transformers import GPT2TokenizerFast
+
+COST_PER_TOKEN = {
+    "gpt-4" : 0.00006,
+    "gpt-3.5-turbo": 0.000002,
+}
+
+DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant providing clear and short reponses."
+
+def run_in_executor(f):
+    @functools.wraps(f)
+    def inner(*args, **kwargs):
+        loop = asyncio.get_running_loop()
+        return loop.run_in_executor(None, lambda: f(*args, **kwargs))
+    return inner
+
+@run_in_executor
+def chat_wrapper(**kwargs):  # Your wrapper for async use
+    return openai.ChatCompletion.create(**kwargs)
+
+def chat_stream_wrapper(**kwargs):  # Your wrapper for async use
+    response = openai.ChatCompletion.create(stream=True, **kwargs)
+    collected_chunks = []
+    collected_messages = []
+    for chunk in response:
+        collected_chunks.append(chunk)  # save the event response
+        print(chunk)
+        chunk_message = chunk['choices'][0]['delta']  # extract the message
+        collected_messages.append(chunk_message)  # save the message
+        full_reply_content = ''.join([m.get('content', '') for m in collected_messages])
+        yield full_reply_content
+
+async def async_iterable(blocking_method, *args, **kwargs):
+    for result in await asyncio.to_thread(blocking_method, *args, **kwargs):
+        yield result
+
+
+class ChatStreamManager():
+    def __init__(self, ws: web.WebSocketResponse, tokenizer):
+        self._ws = ws
+        self._read_task = None
+        self._write_task = None
+        self._tokenizer = tokenizer
+        self._read_thread: threading.Thread|None = None
+        self._write_queue = asyncio.Queue(1000)
+        self._run = True
+        self._stop = asyncio.Event()
+
+    async def start(self):
+        self._read_task = asyncio.create_task(self.handleReading())
+        self._write_task = asyncio.create_task(self.handleWriting())
+
+    async def handleReading(self):
+        async for msg in self._ws:
+            if not self._run:
+                return
+            if msg.data == 'cancel':
+                await self.stop()
+                continue
+            await self.handle_chat(json.loads(msg.data))
+
+    async def handleWriting(self):
+        while self._run:
+            msg = await self._write_queue.get()
+            await self._ws.send_str(msg)
+
+    async def _handle_write(self, data):
+        # TODO: consider emptying the queue
+        await self._write_queue.put(data)
+    
+    async def handle_chat(self, data):
+        prompt = data.get('prompt', DEFAULT_SYSTEM_MESSAGE)
+        if len(prompt) == 0:
+            prompt = DEFAULT_SYSTEM_MESSAGE
+        messages = data['messages']
+        model = data['model']
+        # Format a chat request to the OpenAI API
+        api_messages=[{"role": "system", "content": prompt}]
+        tokens_used = len(self._tokenizer("system").data['input_ids']) + len(self._tokenizer(prompt).data['input_ids'])
+        temperature = data.get('temperature', 1.0)
+        for message in messages:
+            api_messages.append(message)
+            tokens_used += len(self._tokenizer(message['content']).data['input_ids'])
+            tokens_used += len(self._tokenizer(message['role']).data['input_ids'])
+        self._read_thread = threading.Thread(target=self.request_chat, args=(tokens_used,asyncio.get_event_loop()), kwargs={'model': model, 'messages': api_messages, 'temperature': temperature})
+        self._read_thread.start()
+
+    def request_chat(self, tokens: int, loop, **kwargs):
+        try:
+            for chunk in chat_stream_wrapper(**kwargs):
+                if not self._run:
+                    return
+                tokens += 1
+                task = asyncio.run_coroutine_threadsafe(self._handle_write(json.dumps({
+                    'cost_tokens': tokens,
+                    'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
+                    'message': chunk,
+                })), loop)
+                task.result()
+        finally:
+            asyncio.run_coroutine_threadsafe(self.stop(), loop)
+        
+
+    async def stop(self):
+        self._stop.set()
+        self._run = False
+        await self._ws.close()
+        if self._read_task is not None:
+            self._read_task.cancel()
+            await self._read_task
+        if self._read_thread is not None:
+            self._read_thread.join()
+
+    async def closed(self):
+        await self._stop.wait()
+
+
+# An aiohttp server class that serves the files in the "static" directory
+# and handles the chat API endpoint
+class Server():
+    def __init__(self):
+        print("Loading tokenizer")
+        try:
+            self.tokenizer = GPT2TokenizerFast(vocab_file=self.get_path('model/vocab.json'), merges_file=self.get_path('model/merges.txt'))
+            print("Tokenizer Loaded")
+        except:
+            print("Tokenizer failed")
+        pass
+
+    async def start(self):
+        app = web.Application()
+        app.add_routes([
+            web.static('/static', self.get_path('static'), show_index=False),
+            web.get('/', self.index),
+            web.post('/api/chat', self.chat),
+            web.get('/api/ws/chat', self.websocket_stream_handler),
+            ])
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", 80)
+        await site.start()
+        
+
+    # takes in a path and returns the fully qualified path relative to this file
+    def get_path(self, path):
+        return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
+    
+    async def index(self, req: web.Request):
+        return web.FileResponse(self.get_path('static/index.html'))
+
+    async def chat(self, req: web.Request):
+        # retrieve json from the request
+        data = await req.json()
+        prompt = data.get('prompt', DEFAULT_SYSTEM_MESSAGE)
+        if len(prompt) == 0:
+            prompt = DEFAULT_SYSTEM_MESSAGE
+        messages = data['messages']
+        model = data['model']
+        temperature = data.get('temperature', 1.0)
+        # Format a chat request to the OpenAI API
+        api_messages=[{"role": "system", "content": prompt}]
+        for message in messages:
+            api_messages.append(message)
+        resp = await chat_wrapper(model=model, messages=api_messages, temperature=temperature)
+        return web.json_response({
+            'cost_tokens': resp['usage']['total_tokens'],
+            'cost_usd': resp['usage']['total_tokens'] * COST_PER_TOKEN.get(model, 0),
+            'message': resp['choices'][0]['message']['content'],
+            'finish_reason':  resp['choices'][0]['finish_reason']
+        })
+
+    async def websocket_stream_handler(self, req: web.Request):
+        ws = web.WebSocketResponse()
+        await ws.prepare(req)
+        manager = ChatStreamManager(ws, self.tokenizer)
+        await manager.start()
+        await manager.closed()
+        return ws
