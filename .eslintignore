@@ -1,0 +1,8 @@
+node_modules/*
+docs/*
+docs-src/*
+build/*
+js/*
+rollup.config.js
+custom-elements.json
+web-dev-server.config.js
