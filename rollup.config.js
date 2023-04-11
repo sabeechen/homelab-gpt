@@ -5,10 +5,12 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 const terser  = require('@rollup/plugin-terser');
 import commonjs from '@rollup/plugin-commonjs';
 import typescript from '@rollup/plugin-typescript';
+import postcss from 'rollup-plugin-postcss';
+import postcssImport from 'postcss-import';
+import json from "@rollup/plugin-json"
 
 export default {
-  input: 'server/static/build/chat-main.js',
-  input: 'ts/chat-main.ts',
+  input: 'ts/index.ts',
   plugins: [
     // Entry point for application build; can specify a glob to build multiple
     // HTML files for non-SPA app
@@ -17,6 +19,7 @@ export default {
     // }),
     typescript(),
     commonjs(),
+    json(),
     // Resolve bare module specifiers to relative paths
     nodeResolve(),
     // Minify JS
@@ -29,10 +32,15 @@ export default {
     copy({
       patterns: ['images/**/*'],
     }),
+    postcss({
+      plugins: [postcssImport()],
+      inject: false,
+      minimize: true,
+    }),,
   ],
   output: {
     dir: 'server/static',
     sourcemap: true
   },
-  preserveEntrySignatures: 'strict',
+  preserveEntrySignatures: 'strict'
 };

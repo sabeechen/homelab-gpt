@@ -6,15 +6,17 @@ import functools
 import asyncio
 import json
 import threading
+import uuid
 
 from transformers import GPT2TokenizerFast
 
 COST_PER_TOKEN = {
-    "gpt-4" : 0.00006,
+    "gpt-4": 0.00006,
     "gpt-3.5-turbo": 0.000002,
 }
 
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant providing clear and short reponses."
+
 
 def run_in_executor(f):
     @functools.wraps(f)
@@ -23,9 +25,11 @@ def run_in_executor(f):
         return loop.run_in_executor(None, lambda: f(*args, **kwargs))
     return inner
 
+
 @run_in_executor
 def chat_wrapper(**kwargs):  # Your wrapper for async use
     return openai.ChatCompletion.create(**kwargs)
+
 
 def chat_stream_wrapper(**kwargs):  # Your wrapper for async use
     response = openai.ChatCompletion.create(stream=True, **kwargs)
@@ -36,8 +40,13 @@ def chat_stream_wrapper(**kwargs):  # Your wrapper for async use
         print(chunk)
         chunk_message = chunk['choices'][0]['delta']  # extract the message
         collected_messages.append(chunk_message)  # save the message
-        full_reply_content = ''.join([m.get('content', '') for m in collected_messages])
-        yield full_reply_content
+        full_reply_content = ''.join(
+            [m.get('content', '') for m in collected_messages])
+        yield {
+            "finish_reason": chunk['choices'][0]['finish_reason'],
+            "content": full_reply_content
+        }
+
 
 async def async_iterable(blocking_method, *args, **kwargs):
     for result in await asyncio.to_thread(blocking_method, *args, **kwargs):
@@ -50,10 +59,11 @@ class ChatStreamManager():
         self._read_task = None
         self._write_task = None
         self._tokenizer = tokenizer
-        self._read_thread: threading.Thread|None = None
+        self._read_thread: threading.Thread | None = None
         self._write_queue = asyncio.Queue(1000)
         self._run = True
         self._stop = asyncio.Event()
+        self.id = str(uuid.uuid4())
 
     async def start(self):
         self._read_task = asyncio.create_task(self.handleReading())
@@ -76,7 +86,7 @@ class ChatStreamManager():
     async def _handle_write(self, data):
         # TODO: consider emptying the queue
         await self._write_queue.put(data)
-    
+
     async def handle_chat(self, data):
         prompt = data.get('prompt', DEFAULT_SYSTEM_MESSAGE)
         if len(prompt) == 0:
@@ -84,14 +94,22 @@ class ChatStreamManager():
         messages = data['messages']
         model = data['model']
         # Format a chat request to the OpenAI API
-        api_messages=[{"role": "system", "content": prompt}]
-        tokens_used = len(self._tokenizer("system").data['input_ids']) + len(self._tokenizer(prompt).data['input_ids'])
+        api_messages = [{"role": "system", "content": prompt}]
+        tokens_used = len(self._tokenizer(
+            "system").data['input_ids']) + len(self._tokenizer(prompt).data['input_ids'])
         temperature = data.get('temperature', 1.0)
         for message in messages:
-            api_messages.append(message)
-            tokens_used += len(self._tokenizer(message['content']).data['input_ids'])
-            tokens_used += len(self._tokenizer(message['role']).data['input_ids'])
-        self._read_thread = threading.Thread(target=self.request_chat, args=(tokens_used,asyncio.get_event_loop()), kwargs={'model': model, 'messages': api_messages, 'temperature': temperature})
+            api_message = {
+                "role": message.get("role", "user"),
+                "content": message.get("message", "")
+            }
+            api_messages.append(api_message)
+            tokens_used += len(self._tokenizer(
+                api_message.get("content")).data['input_ids'])
+            tokens_used += len(self._tokenizer(
+                api_message.get("role")).data['input_ids'])
+        self._read_thread = threading.Thread(target=self.request_chat, args=(tokens_used, asyncio.get_event_loop()), kwargs={
+                                             'model': model, 'messages': api_messages, 'temperature': temperature})
         self._read_thread.start()
 
     def request_chat(self, tokens: int, loop, **kwargs):
@@ -103,14 +121,21 @@ class ChatStreamManager():
                 task = asyncio.run_coroutine_threadsafe(self._handle_write(json.dumps({
                     'cost_tokens': tokens,
                     'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
-                    'message': chunk,
+                    'message': chunk['content'],
+                    'finish_reason': chunk['finish_reason'],
+                    'id': self.id,
+                    'role': 'assistant'
                 })), loop)
                 task.result()
+        except Exception as e:
+            asyncio.run_coroutine_threadsafe(self._handle_write(json.dumps({
+                'error': str(e),
+                'id': self.id,
+            })), loop)
         finally:
             asyncio.run_coroutine_threadsafe(self.stop(), loop)
-        
 
-    async def stop(self):
+    async def stop(self, error=None):
         self._stop.set()
         self._run = False
         await self._ws.close()
@@ -130,7 +155,8 @@ class Server():
     def __init__(self):
         print("Loading tokenizer")
         try:
-            self.tokenizer = GPT2TokenizerFast(vocab_file=self.get_path('model/vocab.json'), merges_file=self.get_path('model/merges.txt'))
+            self.tokenizer = GPT2TokenizerFast(vocab_file=self.get_path(
+                'model/vocab.json'), merges_file=self.get_path('model/merges.txt'))
             print("Tokenizer Loaded")
         except:
             print("Tokenizer failed")
@@ -143,17 +169,16 @@ class Server():
             web.get('/', self.index),
             web.post('/api/chat', self.chat),
             web.get('/api/ws/chat', self.websocket_stream_handler),
-            ])
+        ])
         runner = web.AppRunner(app)
         await runner.setup()
         site = web.TCPSite(runner, "0.0.0.0", 80)
         await site.start()
-        
 
     # takes in a path and returns the fully qualified path relative to this file
     def get_path(self, path):
         return os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
-    
+
     async def index(self, req: web.Request):
         return web.FileResponse(self.get_path('static/index.html'))
 
@@ -167,15 +192,20 @@ class Server():
         model = data['model']
         temperature = data.get('temperature', 1.0)
         # Format a chat request to the OpenAI API
-        api_messages=[{"role": "system", "content": prompt}]
+        api_messages = [{"role": "system", "content": prompt}]
         for message in messages:
-            api_messages.append(message)
+            api_messages.append({
+                "role": message.get("role", "user"),
+                "content": message.get("message", "")
+            })
         resp = await chat_wrapper(model=model, messages=api_messages, temperature=temperature)
         return web.json_response({
+            'role': "assistant",
             'cost_tokens': resp['usage']['total_tokens'],
             'cost_usd': resp['usage']['total_tokens'] * COST_PER_TOKEN.get(model, 0),
             'message': resp['choices'][0]['message']['content'],
-            'finish_reason':  resp['choices'][0]['finish_reason']
+            'finish_reason':  resp['choices'][0]['finish_reason'],
+            'id': str(uuid.uuid4())
         })
 
     async def websocket_stream_handler(self, req: web.Request):

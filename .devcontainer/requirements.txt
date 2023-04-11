@@ -1,3 +1,4 @@
 aiohttp
 openai
 transformers
+uuid

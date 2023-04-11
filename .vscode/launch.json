@@ -10,9 +10,7 @@
       "request": "launch",
       "module": "server",
       "justMyCode": true,
-      "env": {
-        "OPENAI_API_KEY": "your_key_goes_here"
-      }
+      "envFile": "${workspaceFolder}/.env"
     },
     {
       "type": "chrome",

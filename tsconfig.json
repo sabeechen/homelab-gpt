@@ -3,8 +3,7 @@
     "target": "es2019",
     "module": "es2020",
     "lib": ["es2020", "DOM", "DOM.Iterable"],
-    "declaration": true,
-    "declarationMap": true,
+    "declarationMap": false,
     "sourceMap": true,
     "inlineSources": true,
     "outDir": "server/static/build",
@@ -21,6 +20,9 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitOverride": true,
+    "allowJs": true,
+    "declaration": false,
+
     "plugins": [
       {
         "name": "ts-lit-plugin",
@@ -28,6 +30,6 @@
       }
     ]
   },
-  "include": ["ts/**/*.ts"],
+  "include": ["ts/**/*.ts", "ts/**/*.css"],
   "exclude": []
 }

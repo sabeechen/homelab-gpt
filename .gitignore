@@ -4,5 +4,6 @@
 /js/
 /build/
 server/__pycache__/
-server/static/chat-main.js
 server/static/build/
+.env
+server/**/*.js.map

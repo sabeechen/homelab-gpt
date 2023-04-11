@@ -7,7 +7,7 @@
   "module": "my-element.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && rollup -c --bundleConfigAsCjs",
+    "build": "tsc && rollup -c",
     "build:watch": "tsc --watch && rollup -c --bundleConfigAsCjs --watch",
     "clean": "rimraf my-element.{d.ts,d.ts.map,js,js.map} test/my-element.{d.ts,d.ts.map,js,js.map} test/my-element_test.{d.ts,d.ts.map,js,js.map}",
     "lint": "npm run lint:lit-analyzer && npm run lint:eslint",
@@ -32,6 +32,9 @@
   "author": "Google LLC",
   "license": "BSD-3-Clause",
   "dependencies": {
+    "@lit-labs/context": "^0.3.0",
+    "@mdi/js": "^7.2.96",
+    "@mdi/react": "^1.6.1",
     "lit": "^2.2.4"
   },
   "devDependencies": {
@@ -41,10 +44,13 @@
     "@open-wc/testing": "^3.1.5",
     "@rollup/plugin-commonjs": "^24.0.1",
     "@rollup/plugin-html": "^1.0.2",
+    "@rollup/plugin-json": "^6.0.0",
     "@rollup/plugin-node-resolve": "^13.3.0",
     "@rollup/plugin-replace": "^5.0.2",
     "@rollup/plugin-terser": "^0.4.0",
     "@rollup/plugin-typescript": "^11.1.0",
+    "@types/marked": "^4.0.8",
+    "@types/websocket": "^1.0.5",
     "@typescript-eslint/eslint-plugin": "^5.25.0",
     "@typescript-eslint/parser": "^5.25.0",
     "@web/dev-server": "^0.1.31",
@@ -55,14 +61,23 @@
     "@web/test-runner-playwright": "^0.9.0",
     "@webcomponents/webcomponentsjs": "^2.6.0",
     "eslint": "^8.15.0",
+    "highlight.js": "^11.7.0",
     "lit-analyzer": "^1.2.1",
+    "markdown": "^0.5.0",
+    "marked": "^4.3.0",
+    "postcss-import": "^15.1.0",
     "prettier": "^2.6.2",
     "rimraf": "^3.0.2",
     "rollup": "^2.79.1",
     "rollup-plugin-minify-html-literals": "^1.2.6",
+    "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-summary": "^1.4.3",
     "rollup-plugin-terser": "^7.0.2",
-    "typescript": "~4.7.4"
+    "typescript": "~4.7.4",
+    "uuid": "^9.0.0",
+    "websocket": "^1.0.34",
+    "websocket-ts": "^1.1.1",
+    "websockets": "^0.2.0"
   },
   "customElements": "custom-elements.json"
 }
