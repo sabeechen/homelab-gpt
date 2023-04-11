@@ -93,6 +93,7 @@ class ChatStreamManager():
             prompt = DEFAULT_SYSTEM_MESSAGE
         messages = data['messages']
         model = data['model']
+        max_tokens = data['max_tokens']
         # Format a chat request to the OpenAI API
         api_messages = [{"role": "system", "content": prompt}]
         tokens_used = len(self._tokenizer(
@@ -109,7 +110,7 @@ class ChatStreamManager():
             tokens_used += len(self._tokenizer(
                 api_message.get("role")).data['input_ids'])
         self._read_thread = threading.Thread(target=self.request_chat, args=(tokens_used, asyncio.get_event_loop()), kwargs={
-                                             'model': model, 'messages': api_messages, 'temperature': temperature})
+                                             'model': model, 'messages': api_messages, 'temperature': temperature, 'max_tokens': max_tokens})
         self._read_thread.start()
 
     def request_chat(self, tokens: int, loop, **kwargs):
@@ -191,6 +192,7 @@ class Server():
         messages = data['messages']
         model = data['model']
         temperature = data.get('temperature', 1.0)
+        max_tokens = data['max_tokens']
         # Format a chat request to the OpenAI API
         api_messages = [{"role": "system", "content": prompt}]
         for message in messages:
@@ -198,7 +200,7 @@ class Server():
                 "role": message.get("role", "user"),
                 "content": message.get("message", "")
             })
-        resp = await chat_wrapper(model=model, messages=api_messages, temperature=temperature)
+        resp = await chat_wrapper(model=model, messages=api_messages, temperature=temperature, max_tokens=max_tokens)
         return web.json_response({
             'role': "assistant",
             'cost_tokens': resp['usage']['total_tokens'],

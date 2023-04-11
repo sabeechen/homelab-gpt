@@ -12,6 +12,7 @@ export class Message {
 export class Model {
   label: string
   value: string
+  maxTokens: number
 }
 
 
@@ -20,22 +21,25 @@ export class AppData {
   models: Model[] = [
       {
         label: "GPT3 ($)",
-        value: "gpt-3.5-turbo"
+        value: "gpt-3.5-turbo",
+        maxTokens: 4096
       },
       {
         label: "GPT4 ($$$)",
-        value: "gpt-4"
+        value: "gpt-4",
+        maxTokens: 8192,
       }
     ];
   busy = false;
   abortController: AbortController|undefined = undefined;
   streamWebSocket: Websocket|undefined = undefined;
-  publishCallback: () => void|undefined = undefined
+  publishCallback: () => void|undefined = undefined;
+  currentModel: Model = this.models[1];
 
   constructor() {
   }
 
-  public async chatSynchronous(prompt: string, model: string, determinism: number) {
+  public async chatSynchronous(prompt: string, model: string, determinism: number, max_tokens: number) {
     this.busy = true;
     try {
       this.abortController = new AbortController();
@@ -44,7 +48,8 @@ export class AppData {
         messages: this.messages,
         model: model,
         temperature: ((100 - determinism) / 100) * 2,
-        prompt: prompt
+        prompt: prompt,
+        max_tokens,
       };
       const resp = await fetch('/api/chat', {
         method: 'POST',
@@ -73,7 +78,8 @@ export class AppData {
     this.busy = false;
   }
 
-  public delete(msg: Message) {
+  public async delete(msg: Message) {
+    await this.cancel();
     const index = this.messages.indexOf(msg);
     if (index >= 0) {
       this.messages.splice(index, 1);
@@ -87,7 +93,7 @@ export class AppData {
     }
   }
 
-  public async chatStream(prompt: string, model: string, determinism: number) {
+  public async chatStream(prompt: string, model: string, determinism: number, maxTokens: number) {
     await this.cancel();
     this.busy = true;
     const app = this;
@@ -101,7 +107,8 @@ export class AppData {
       model: model,
       temperature: ((100 - determinism) / 100) * 2,
       prompt: prompt,
-      id: message.id
+      id: message.id,
+      max_tokens: maxTokens
     };
     this.messages.push(message);
     const index = this.messages.length - 1;
@@ -144,5 +151,9 @@ export class AppData {
 
   public bindToUpdates(callback: () => void) {
     this.publishCallback = callback;
+  }
+
+  public getCurrentModel() {
+    return this.currentModel;
   }
 }

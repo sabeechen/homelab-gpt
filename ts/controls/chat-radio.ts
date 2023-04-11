@@ -1,6 +1,10 @@
 import {LitElement, html, css} from 'lit';
 import {customElement, property, queryAll} from 'lit/decorators.js';
-import { Model } from '../app-data';
+
+class SelectOption {
+  label: string
+  value: any
+}
 
 @customElement('chat-radio')
 export class ChatRadio extends LitElement {
@@ -44,41 +48,14 @@ export class ChatRadio extends LitElement {
     }
   `;
 
-  /**
-   * Label for the checkbox
-   */
-  @property({type: String})
-  label = '';
-
-  /**
-   * Value of the checkbox, ie "checked" property
-   */
-  @property({type: Boolean})
-  value = false;
-
-   /**
-   * Value of the radio, ie "checked" property
-   */
-   @property({type: Boolean})
-   checked = false;
-
    @queryAll('input')
    _inputs: NodeListOf<HTMLInputElement>;
 
    @property({type: Object})
-   options: Model[]
+   options: SelectOption[]
 
-   public getSelected() {
-    let last = undefined;
-    for (const input of this._inputs) {
-      if (input.checked) {
-        return input.value
-      }
-      last = input;
-    }
-    return last.value;
-  }
-
+   @property({type: Object})
+   value: SelectOption
 
   override render() {
     return html`
@@ -88,11 +65,22 @@ export class ChatRadio extends LitElement {
             <input
               type="radio"
               name="option"
-              value="${option.value}"
+              id="${option.value}"
+              ?checked="${option == this.value}"
+              @input=${this._inputChanged}
             />
             <span>${option.label}</span>
           </label>`)}
         </div>`;
+  }
+
+  private _inputChanged(e: Event) {
+    for (const option of this.options){
+      if ( (e.target as HTMLInputElement).id == option.value) {
+        this.value = option;
+        return;
+      }
+    }
   }
 
 }
