@@ -3,7 +3,7 @@ import {customElement, property} from 'lit/decorators.js';
 import {consume} from '@lit-labs/context';
 import {type AppData, appContext} from '../app-context';
 import { Message } from '../app-data';
-import { mdiChatQuestion, mdiContentCopy, mdiHuman, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan } from '@mdi/js';
+import { mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan } from '@mdi/js';
 import { ChatIcon } from './chat-icon';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -13,6 +13,7 @@ import  {defaultCSS} from "../global-styles"
  *
  * @fires replay
  * @fires delete
+ * @fires continue
  * @attr message
  */
 @customElement('chat-message')
@@ -212,6 +213,8 @@ export class ChatMessage extends LitElement {
           <chat-icon class="action-icon" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
           <chat-icon class="action-icon" .path=${mdiReplay} @click=${this._replay}></chat-icon>
           <chat-icon class="action-icon" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
+          ${this.message.finish_reason == "length" ? 
+          html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
         </div>
       </div>`
   }
@@ -258,6 +261,10 @@ export class ChatMessage extends LitElement {
 
   private _delete() {
     this._dispatchEvent("delete");
+  }
+
+  private _continue() {
+    this._dispatchEvent("continue");
   }
 
   private async _copy() {

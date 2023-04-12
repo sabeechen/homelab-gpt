@@ -93,25 +93,47 @@ export class AppData {
     }
   }
 
-  public async chatStream(prompt: string, model: string, determinism: number, maxTokens: number) {
+  public async continue(cont: Message, prompt: string, model: string, determinism: number, maxTokens: number) {
+    const toSend: Message[] = [];
+    for (const msg of this.messages) {
+      toSend.push(msg);
+      if(msg == cont) {
+        break;
+      }
+    }
+    await this.chatStream(prompt, model, determinism, maxTokens, toSend, cont);
+  }
+
+  public async chatStream(prompt: string, model: string, determinism: number, maxTokens: number, messages: Message[]=null, message: Message = null) {
     await this.cancel();
     this.busy = true;
     const app = this;
-    const message: Message = {
-      role: "assistant",
-      message: "...",
-      id: uuidv4()
-    };
+    if (messages == null) {
+      messages = this.messages;
+    }
+    
+    let continuation = "";
+    if (message == null) {
+      message = {
+        role: "assistant",
+        message: "...",
+        id: uuidv4()
+      };
+      this.messages.push(message);
+    } else {
+      continuation = message.message;
+    }
+    
     const request = {
-      messages: this.messages,
+      messages: messages,
       model: model,
       temperature: ((100 - determinism) / 100) * 2,
       prompt: prompt,
       id: message.id,
-      max_tokens: maxTokens
+      max_tokens: maxTokens,
+      continuation: continuation,
     };
-    this.messages.push(message);
-    const index = this.messages.length - 1;
+    const index = this.messages.indexOf(message);
 
     const wsProtocol = window.location.protocol == 'https:' ? 'wss' : 'ws';
     this.streamWebSocket = new WebsocketBuilder(wsProtocol + '://' + window.location.host + '/api/ws/chat')

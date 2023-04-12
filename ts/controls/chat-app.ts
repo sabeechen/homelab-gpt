@@ -165,7 +165,7 @@ export class ChatApp extends LitElement {
       <chat-container>
         <div class="flex-veritcal wide">
           ${repeat(this.app.messages, (msg) => msg.id, (msg, _index) => html`
-            <chat-message class="wide" .message=${msg} @delete=${this._messageDelete} @replay=${this._messageReplay}></chat-message>
+            <chat-message class="wide" .message=${msg} @delete=${this._messageDelete} @replay=${this._messageReplay} @continue=${this._messageContinue}></chat-message>
           `)}
         </div>
       </chat-container>
@@ -268,6 +268,13 @@ export class ChatApp extends LitElement {
     const message = e.detail as Message;
     this._chatInput.value = message.message;
     this.app.truncate(message);
+    this.requestUpdate();
+  }
+
+  private async _messageContinue(e: CustomEvent) {
+    const message = e.detail as Message;
+    const modelName = (this._modelSelect.value as Model).value
+    await this.app.continue(message, this._systemInput.value, modelName, this._determinism.value, this._maxTokens.value);
     this.requestUpdate();
   }
 }

@@ -94,6 +94,7 @@ class ChatStreamManager():
         messages = data['messages']
         model = data['model']
         max_tokens = data['max_tokens']
+        message_start = data.get("continuation", "")
         # Format a chat request to the OpenAI API
         api_messages = [{"role": "system", "content": prompt}]
         tokens_used = len(self._tokenizer(
@@ -109,11 +110,11 @@ class ChatStreamManager():
                 api_message.get("content")).data['input_ids'])
             tokens_used += len(self._tokenizer(
                 api_message.get("role")).data['input_ids'])
-        self._read_thread = threading.Thread(target=self.request_chat, args=(tokens_used, asyncio.get_event_loop()), kwargs={
+        self._read_thread = threading.Thread(target=self.request_chat, args=(message_start, tokens_used, asyncio.get_event_loop()), kwargs={
                                              'model': model, 'messages': api_messages, 'temperature': temperature, 'max_tokens': max_tokens})
         self._read_thread.start()
 
-    def request_chat(self, tokens: int, loop, **kwargs):
+    def request_chat(self, message_start: str, tokens: int, loop, **kwargs):
         try:
             for chunk in chat_stream_wrapper(**kwargs):
                 if not self._run:
@@ -122,7 +123,7 @@ class ChatStreamManager():
                 task = asyncio.run_coroutine_threadsafe(self._handle_write(json.dumps({
                     'cost_tokens': tokens,
                     'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
-                    'message': chunk['content'],
+                    'message': message_start + chunk['content'],
                     'finish_reason': chunk['finish_reason'],
                     'id': self.id,
                     'role': 'assistant'
