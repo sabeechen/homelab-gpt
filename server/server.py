@@ -37,7 +37,6 @@ def chat_stream_wrapper(**kwargs):  # Your wrapper for async use
     collected_messages = []
     for chunk in response:
         collected_chunks.append(chunk)  # save the event response
-        print(chunk)
         chunk_message = chunk['choices'][0]['delta']  # extract the message
         collected_messages.append(chunk_message)  # save the message
         full_reply_content = ''.join(
@@ -115,6 +114,8 @@ class ChatStreamManager():
         self._read_thread.start()
 
     def request_chat(self, message_start: str, tokens: int, loop, **kwargs):
+        if (len(message_start) > 0):
+            message_start += " "
         last_message = {
             'cost_tokens': tokens,
             'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),

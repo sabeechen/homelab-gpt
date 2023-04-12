@@ -14,7 +14,7 @@ import { ChatRadio } from './chat-radio.js';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultCSS } from "../global-styles"
 import { ChatIcon } from './chat-icon.js';
-import { mdiChatQuestionOutline, mdiNuke } from '@mdi/js';
+import { mdiChatOutline, mdiNuke } from '@mdi/js';
 import { ChatBar } from './chat-bar.js';
 
 @customElement('chat-app')
@@ -38,14 +38,13 @@ export class ChatApp extends LitElement {
 
       /* an animated spinning progress indicator*/
       .loader {
-        border: 6px solid #f3f3f3; /* Light grey */
-        border-top: 6px solid #3498db; /* Blue */
+        border: 4px solid #f3f3f3; /* Light grey */
+        border-top: 4px solid #3498db; /* Blue */
         border-radius: 50%;
-        width: 10px;
-        height: 10px;
-        animation: spin 1.5s linear infinite;
-        display: inline-block;
-        margin-right: 5px;
+        width: 24px;
+        height: 24px;
+        animation: 0.75s linear 0s infinite normal none running spin;
+        margin-right: 10px;
       }
 
       @keyframes spin {
@@ -57,9 +56,7 @@ export class ChatApp extends LitElement {
         }
       }
 
-      h1,
-      h2,
-      h3 {
+      h1 {
         font-weight: 300;
         margin-top: 0;
         margin-bottom: 5px;
@@ -203,7 +200,7 @@ export class ChatApp extends LitElement {
             html`
             <chat-button id="submit" @click=${this._chat}>
               <div class="flex-horizontal flex-center">
-                <chat-icon class="button-icon" .path=${mdiChatQuestionOutline}></chat-icon>
+                <chat-icon style="transform: scaleX(-1);" class="button-icon" .path=${mdiChatOutline}></chat-icon>
                 <span>Submit </span>
               </div>
             </chat-button>`}

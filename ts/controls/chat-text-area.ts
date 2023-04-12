@@ -12,12 +12,6 @@ import  {defaultCSS} from "../global-styles"
 @customElement('chat-text-area')
 export class ChatTextArea extends LitElement {
   static override styles = [defaultCSS, css`
-    textarea {
-      width: 100%;
-      box-sizing: border-box;
-      resize: vertical;
-    }
-
     /* Apply dark theme to the textarea */
     textarea {
       background-color: #1e1e1e;
@@ -25,12 +19,13 @@ export class ChatTextArea extends LitElement {
       border: 1px solid var(--grey);
       border-radius: 5px;
       padding: 10px;
-      width: calc(100% - 40px);
-      font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.25;
       transition-property: all, -height;
       transition-duration: 0.3s;
       transition-timing-function: ease;
+      box-sizing: border-box;
+      resize: vertical;
+      width: 100%;
     }
 
     /* Apply focus styles to the textarea */
@@ -72,7 +67,7 @@ export class ChatTextArea extends LitElement {
 
   override render() {
     return html`
-    <form>
+      <form>
         <textarea
             inputmode="enter"
             class="chat-input"
@@ -82,8 +77,7 @@ export class ChatTextArea extends LitElement {
             placeholder="${this.placeholder}"
             @keydown=${this._submitCheck}
           ></textarea>
-  </form>
-    `;
+      </form>`;
   }
 
   changeName(event: Event) {

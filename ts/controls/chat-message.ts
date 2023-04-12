@@ -36,6 +36,9 @@ export class ChatMessage extends LitElement {
   @query("#edit-text-area")
   _editTextArea: ChatTextArea;
 
+  @query("#message-rendered")
+  _messageRendered: HTMLDivElement;
+
   static override styles = [defaultCSS,  hljsCss, css`
     .user {
       display: flex;
@@ -54,6 +57,12 @@ export class ChatMessage extends LitElement {
     }
     .message {
       flex-grow: 1;
+      white-space: pre-wrap;
+    }
+
+    .message-editing {
+      white-space: revert;
+      padding: 10px;
     }
 
     .cost {
@@ -62,8 +71,8 @@ export class ChatMessage extends LitElement {
       color: #ff9c9c;
     }
     .actor-icon {
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
       stroke: white;
       border: 2px solid #370178;
       border-radius: 5px;
@@ -82,8 +91,8 @@ export class ChatMessage extends LitElement {
       color: #a9a9a9;
     }
     .action-icon {
-      width: 20px;
-      height: 20px;
+      width: 30px;
+      height: 30px;
       padding: 5px;
       border-radius: 5px;
       margin: 0px;
@@ -92,7 +101,7 @@ export class ChatMessage extends LitElement {
       justify-content: center;
     }
     .action-icon:hover {
-      background-color: #00043a;
+      background-color: var(--blue-hover);;
     }
 
     .human {
@@ -109,6 +118,13 @@ export class ChatMessage extends LitElement {
 
     .error-container {
       margin-bottom: 10px;
+    }
+    .action-container {
+      display: grid;
+      grid-template-columns: repeat(2, 30px);
+      grid-auto-rows: 30px;
+      gap: 5px;
+      margin-top: 10px;
     }
   `];
 
@@ -161,18 +177,18 @@ export class ChatMessage extends LitElement {
             ${this.message.cost_tokens ? html`<div class="cost-tokens">${this.message.cost_tokens} tokens</div>` : html``}
           </div>
           ${this.editing ? html`
-          <div class="message"><chat-text-area id="edit-text-area" class="wide" rows=6 @submit=${this._saveEdit}></chat-text-area></div>
+          <div class=${this.editing ? "message message-editing": "message"}><chat-text-area id="edit-text-area" class="wide" rows=6 @submit=${this._saveEdit}></chat-text-area></div>
           <div class="flex-vertical">
             <chat-icon class="action-icon" .path=${mdiContentSaveEdit} @click=${this._saveEdit}></chat-icon>
             <chat-icon class="action-icon" .path=${mdiClose} @click=${this._cancelEdit}></chat-icon>
           </div>
           ` : html`
-          <div class="${this._isHuman() ? "message human" : "message"}">${messageHTML}</div>
-          <div class="flex-vertical">
-            <chat-icon class="action-icon" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
-            <chat-icon class="action-icon" .path=${mdiReplay} @click=${this._replay}></chat-icon>
-            <chat-icon class="action-icon" .path=${mdiPencil} @click=${this._edit}></chat-icon>
-            <chat-icon class="action-icon" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
+          <div id="message-rendered" class="${this._isHuman() ? "message human" : "message"}">${messageHTML}</div>
+          <div class="action-container">
+            <chat-icon class="action-icon action-half" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
+            <chat-icon class="action-icon action-half" .path=${mdiReplay} @click=${this._replay}></chat-icon>
+            <chat-icon class="action-icon action-half" .path=${mdiPencil} @click=${this._edit}></chat-icon>
+            <chat-icon class="action-icon action-half" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
             ${this.message.finish_reason == "length" ?
             html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
           </div>
@@ -233,10 +249,14 @@ export class ChatMessage extends LitElement {
   }
 
   private async _edit() {
+    // const height = this._messageRendered.offsetHeight;
+    // const style = window.getComputedStyle(this._messageRendered);
+    // const fontSize = parseFloat(style.fontSize);
     this.editing = true;
     await this.updateComplete;
     this._editTextArea.value = this.message.message;
     this._editTextArea.doFocus();
+    // this._editTextArea.rows = Math.ceil(height / fontSize);
   }
 
   private _saveEdit() {

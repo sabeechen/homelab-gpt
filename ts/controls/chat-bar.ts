@@ -12,12 +12,17 @@ import { ChatIcon } from './chat-icon';
 @customElement('chat-bar')
 export class ChatBar extends LitElement {
   static override styles = [defaultCSS, css`
+    :root {
+      display: flex;
+      justify-content: center;
+    }
     .top-insert {
       height: 5px;
       background: var(--bg);
-      border-top: 2px solid #303030;
+      border-top: 2px solid rgb(48, 48, 48);
       cursor: pointer;
-      transition: height 0.2s ease, border-radius 0.2s ease;
+      transition: height 0.2s ease 0s, border-radius 0.2s ease 0s;
+      width: 95%;
     }
 
     chat-icon {
@@ -26,7 +31,9 @@ export class ChatBar extends LitElement {
 
     .top-insert:hover {
       height: 20px;
-      background: #303030;
+      background: rgb(48, 48, 48);
+      padding: 2px;
+      border: 2px solid rgb(115, 115, 115);
       border-radius: 10px;
     }
 
@@ -48,12 +55,14 @@ export class ChatBar extends LitElement {
 
   override render() {
     return html`
+    <div class="wide flex-horizontal flex-center">
       <div class="top-insert flex-horizontal flex-center">
         <div class="hidden">
           <chat-icon .path=${mdiPlus}></chat-icon>
           <span>Insert Message</span>
         </div>
-      </div>`;
+      </div>
+    </div>`;
   }
 }
 

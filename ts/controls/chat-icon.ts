@@ -1,6 +1,6 @@
 import {LitElement, html, css, CSSResult} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
-
+import { defaultCSS } from "../global-styles"
 /**
  * Displays an svg path
  * @attr color
@@ -8,9 +8,11 @@ import {customElement, property} from 'lit/decorators.js';
  */
 @customElement('chat-icon')
 export class ChatIcon extends LitElement {
-  static override styles = css`
-
-  `;
+  static override styles = [defaultCSS, css`
+    svg {
+      vertical-align: bottom;
+    }
+  `];
 
     @property({type: String, attribute: true})
     path: String;

@@ -21,4 +21,7 @@ export const defaultCSS = css`
     align-content: center;
     justify-content: center;
   }
+  * {
+    box-sizing: border-box;
+  }
   `;

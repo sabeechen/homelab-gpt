@@ -120,7 +120,7 @@ export class AppData {
     this.busy = true;
     const app = this;
     if (messages == null) {
-      messages = this.messages;
+      messages = [...this.messages];
     }
     let continuation = "";
     if (message == null) {
