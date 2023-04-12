@@ -32,7 +32,7 @@ export class ChatToggle extends LitElement {
       top: 0;
       width: 20px;
       height: 20px;
-      border: 2px solid var(--white);
+      border: 2px solid var(--grey);
       background-color: var(--grey);
       box-sizing: border-box;
       transition: background-color 0.3s ease;
@@ -40,6 +40,7 @@ export class ChatToggle extends LitElement {
 
     .dark-checkbox input[type='checkbox']:checked + label:before {
       background-color: var(--blue);
+      border: 2px solid var(--white);
     }
   `;
 

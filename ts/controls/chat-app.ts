@@ -109,20 +109,20 @@ export class ChatApp extends LitElement {
   @query('#system-input')
   _systemInput: ChatTextArea;
 
-  @query('#model-select')
-  _modelSelect: ChatRadio;
-
-  @query('#stream')
-  _stream: ChatToggle;
-
-  @query('#determinism')
-  _determinism: ChatSlider;
-
-  @query('#max-tokens')
-  _maxTokens: ChatSlider;
-
   @state({})
   showOptions: boolean
+
+  @state({})
+  maxTokens = 1000;
+
+  @state({})
+  determinism = 50;
+
+  @state({})
+  stream = true;
+
+  @state({})
+  model = this.app.getCurrentModel();
 
   public helper() {
     ChatMessage.properties;
@@ -164,14 +164,15 @@ export class ChatApp extends LitElement {
       ${this.showOptions ? html`
       <chat-container>
           <chat-radio id="model-select" .options=${this.app.models} .value=${this.app.getCurrentModel()} @input=${this._updateSelectedModel}></chat-radio>
-          <chat-toggle id="stream" label="Stream" ?value=${true}></chat-toggle>
+          <chat-toggle id="stream" label="Stream" ?value=${this.stream} @input=${this._updateStream}></chat-toggle>
           <chat-slider
             label="Determinism {}%"
             id="determinism"
             min="0"
             max="100"
             step="1"
-            value="50"
+            .value=${this.determinism}
+            @input=${this._updateDeterminism}
           ></chat-slider>
           <chat-slider
             label="Max Tokens {}"
@@ -179,7 +180,8 @@ export class ChatApp extends LitElement {
             min="25"
             max=${this.app.getCurrentModel().maxTokens}
             step="25"
-            value="1000"
+            .value=${this.maxTokens}
+            @input=${this._updateMaxTokens}
           ></chat-slider>
         </div>
       </chat-container>
@@ -239,11 +241,11 @@ export class ChatApp extends LitElement {
     this._addChatRequest();
     try {
       this.requestUpdate();
-      const modelName = (this._modelSelect.value as Model).value
-      if (this._stream) {
-        await this.app.chatStream(this._systemInput.value, modelName, this._determinism.value, this._maxTokens.value);
+      const modelName = (this.model as Model).value
+      if (this.stream) {
+        await this.app.chatStream(this._systemInput.value, modelName, this.determinism, this.maxTokens);
       } else {
-        await this.app.chatSynchronous(this._systemInput.value, modelName, this._determinism.value, this._maxTokens.value);
+        await this.app.chatSynchronous(this._systemInput.value, modelName, this.determinism, this.maxTokens);
       }
     } finally {
       this.requestUpdate();
@@ -273,12 +275,26 @@ export class ChatApp extends LitElement {
     this.requestUpdate();
   }
 
-  private _updateSelectedModel() {
-    this.app.currentModel = this._modelSelect.value as Model;
-    if (this._maxTokens.value > this.app.getCurrentModel().maxTokens) {
-      this._maxTokens.value = this.app.getCurrentModel().maxTokens;
+  private _updateSelectedModel(e: Event) {
+    const model = (e.target as ChatRadio).value as Model
+    this.app.currentModel = model;
+    this.model = model;
+    if (this.maxTokens > this.app.getCurrentModel().maxTokens) {
+      this.maxTokens = this.app.getCurrentModel().maxTokens;
     }
     this.requestUpdate();
+  }
+
+  private _updateStream(e: Event) {
+    this.stream = (e.target as ChatToggle).value;
+  }
+
+  private _updateDeterminism(e: Event) {
+    this.determinism = (e.target as ChatSlider).value;
+  }
+
+  private _updateMaxTokens(e: Event) {
+    this.maxTokens = (e.target as ChatSlider).value;
   }
 
   private async _cancel() {
@@ -320,8 +336,7 @@ export class ChatApp extends LitElement {
 
   private async _messageContinue(e: CustomEvent) {
     const message = e.detail as Message;
-    const modelName = (this._modelSelect.value as Model).value
-    await this.app.continue(message, this._systemInput.value, modelName, this._determinism.value, this._maxTokens.value);
+    await this.app.continue(message, this._systemInput.value, this.model.value, this.determinism, this.maxTokens);
     this.requestUpdate();
   }
 
