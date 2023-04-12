@@ -15,7 +15,7 @@ COST_PER_TOKEN = {
     "gpt-3.5-turbo": 0.000002,
 }
 
-DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant providing clear and short reponses."
+DEFAULT_SYSTEM_MESSAGE = "You are a helpful and consice assistant."
 
 
 def run_in_executor(f):
