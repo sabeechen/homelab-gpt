@@ -18,20 +18,8 @@ COST_PER_TOKEN = {
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful and consice assistant."
 
 
-def run_in_executor(f):
-    @functools.wraps(f)
-    def inner(*args, **kwargs):
-        loop = asyncio.get_running_loop()
-        return loop.run_in_executor(None, lambda: f(*args, **kwargs))
-    return inner
-
-
-@run_in_executor
-def chat_wrapper(**kwargs):  # Your wrapper for async use
-    return openai.ChatCompletion.create(**kwargs)
-
-
-def chat_stream_wrapper(**kwargs):  # Your wrapper for async use
+def chat_stream_wrapper(api_key: str, **kwargs):  # Your wrapper for async use
+    openai.api_key = api_key
     response = openai.ChatCompletion.create(stream=True, **kwargs)
     collected_chunks = []
     collected_messages = []
@@ -94,6 +82,9 @@ class ChatStreamManager():
         model = data['model']
         max_tokens = data['max_tokens']
         message_start = data.get("continuation", "")
+        api_key = data.get("api_key", os.environ.get('OPENAI_API_KEY'))
+        if len(api_key) == 0:
+            api_key = os.environ.get('OPENAI_API_KEY')
         # Format a chat request to the OpenAI API
         api_messages = [{"role": "system", "content": prompt}]
         tokens_used = len(self._tokenizer(
@@ -109,11 +100,11 @@ class ChatStreamManager():
                 api_message.get("content")).data['input_ids'])
             tokens_used += len(self._tokenizer(
                 api_message.get("role")).data['input_ids'])
-        self._read_thread = threading.Thread(target=self.request_chat, args=(message_start, tokens_used, asyncio.get_event_loop()), kwargs={
+        self._read_thread = threading.Thread(target=self.request_chat, args=(message_start, tokens_used, asyncio.get_event_loop(), api_key), kwargs={
                                              'model': model, 'messages': api_messages, 'temperature': temperature, 'max_tokens': max_tokens})
         self._read_thread.start()
 
-    def request_chat(self, message_start: str, tokens: int, loop, **kwargs):
+    def request_chat(self, message_start: str, tokens: int, loop, api_key: str, **kwargs):
         if (len(message_start) > 0):
             message_start += " "
         last_message = {
@@ -125,7 +116,7 @@ class ChatStreamManager():
             'role': 'assistant'
         }
         try:
-            for chunk in chat_stream_wrapper(**kwargs):
+            for chunk in chat_stream_wrapper(api_key, **kwargs):
                 if not self._run:
                     return
                 tokens += 1
@@ -179,7 +170,6 @@ class Server():
         app.add_routes([
             web.static('/static', self.get_path('static'), show_index=False),
             web.get('/', self.index),
-            web.post('/api/chat', self.chat),
             web.get('/api/ws/chat', self.websocket_stream_handler),
         ])
         runner = web.AppRunner(app)
@@ -193,33 +183,6 @@ class Server():
 
     async def index(self, req: web.Request):
         return web.FileResponse(self.get_path('static/index.html'))
-
-    async def chat(self, req: web.Request):
-        # retrieve json from the request
-        data = await req.json()
-        prompt = data.get('prompt', DEFAULT_SYSTEM_MESSAGE)
-        if len(prompt) == 0:
-            prompt = DEFAULT_SYSTEM_MESSAGE
-        messages = data['messages']
-        model = data['model']
-        temperature = data.get('temperature', 1.0)
-        max_tokens = data['max_tokens']
-        # Format a chat request to the OpenAI API
-        api_messages = [{"role": "system", "content": prompt}]
-        for message in messages:
-            api_messages.append({
-                "role": message.get("role", "user"),
-                "content": message.get("message", "")
-            })
-        resp = await chat_wrapper(model=model, messages=api_messages, temperature=temperature, max_tokens=max_tokens)
-        return web.json_response({
-            'role': "assistant",
-            'cost_tokens': resp['usage']['total_tokens'],
-            'cost_usd': resp['usage']['total_tokens'] * COST_PER_TOKEN.get(model, 0),
-            'message': resp['choices'][0]['message']['content'],
-            'finish_reason':  resp['choices'][0]['finish_reason'],
-            'id': str(uuid.uuid4())
-        })
 
     async def websocket_stream_handler(self, req: web.Request):
         ws = web.WebSocketResponse()

@@ -41,32 +41,6 @@ export class AppData {
   constructor() {
   }
 
-  public async chatSynchronous(prompt: string, model: string, determinism: number, max_tokens: number) {
-    this.busy = true;
-    try {
-      this.abortController = new AbortController();
-      const signal = this.abortController.signal
-      const request = {
-        messages: this.messages,
-        model: model,
-        temperature: ((100 - determinism) / 100) * 2,
-        prompt: prompt,
-        max_tokens,
-      };
-      const resp = await fetch('/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-        signal
-      });
-      this.messages.push(await resp.json() as Message);
-    } finally {
-      this.busy = false;
-    }
-  }
-
   public async cancel() {
     if (this.abortController) {
       this.abortController.abort();
@@ -104,7 +78,7 @@ export class AppData {
     }
   }
 
-  public async continue(cont: Message, prompt: string, model: string, determinism: number, maxTokens: number) {
+  public async continue(cont: Message, prompt: string, model: string, determinism: number, maxTokens: number, apiKey: string) {
     const toSend: Message[] = [];
     for (const msg of this.messages) {
       toSend.push(msg);
@@ -112,10 +86,10 @@ export class AppData {
         break;
       }
     }
-    await this.chatStream(prompt, model, determinism, maxTokens, toSend, cont);
+    await this.chat(prompt, model, determinism, maxTokens, apiKey, toSend, cont);
   }
 
-  public async chatStream(prompt: string, model: string, determinism: number, maxTokens: number, messages: Message[]=null, message: Message = null) {
+  public async chat(prompt: string, model: string, determinism: number, maxTokens: number, api_key: string, messages: Message[]=null, message: Message = null) {
     await this.cancel();
     this.busy = true;
     const app = this;
@@ -141,6 +115,7 @@ export class AppData {
       id: message.id,
       max_tokens: maxTokens,
       continuation: continuation,
+      api_key: api_key,
     };
     const index = this.messages.indexOf(message);
 

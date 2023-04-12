@@ -101,6 +101,11 @@ export class ChatApp extends LitElement {
       .button-icon {
         margin-right: 5px;
       }
+
+      .api-key {
+        width: 100%;
+        margin: 20px;
+      }
   `];
 
   @query('#chat-input')
@@ -113,16 +118,16 @@ export class ChatApp extends LitElement {
   showOptions: boolean
 
   @state({})
-  maxTokens = 1000;
+  maxTokens = JSON.parse(localStorage.getItem('maxTokens') || "1000")as number;
 
   @state({})
-  determinism = 50;
+  determinism = JSON.parse(localStorage.getItem('determinism') || "50") as number;
 
   @state({})
-  stream = true;
+  model = JSON.parse(localStorage.getItem('model') || JSON.stringify(this.app.getCurrentModel())) as Model;
 
   @state({})
-  model = this.app.getCurrentModel();
+  apiKey = localStorage.getItem('apiKey') || "";
 
   public helper() {
     ChatMessage.properties;
@@ -163,26 +168,29 @@ export class ChatApp extends LitElement {
       </chat-container>
       ${this.showOptions ? html`
       <chat-container>
-          <chat-radio id="model-select" .options=${this.app.models} .value=${this.app.getCurrentModel()} @input=${this._updateSelectedModel}></chat-radio>
-          <chat-toggle id="stream" label="Stream" ?value=${this.stream} @input=${this._updateStream}></chat-toggle>
-          <chat-slider
-            label="Determinism {}%"
-            id="determinism"
-            min="0"
-            max="100"
-            step="1"
-            .value=${this.determinism}
-            @input=${this._updateDeterminism}
-          ></chat-slider>
-          <chat-slider
-            label="Max Tokens {}"
-            id="max-tokens"
-            min="25"
-            max=${this.app.getCurrentModel().maxTokens}
-            step="25"
-            .value=${this.maxTokens}
-            @input=${this._updateMaxTokens}
-          ></chat-slider>
+        <div class="flex-vertical flex-center">
+          <div class="flex-horizontal flex-center">
+            <chat-radio id="model-select" .options=${this.app.models} .value=${this.model} @input=${this._updateSelectedModel}></chat-radio>
+            <chat-slider
+              label="Determinism {}%"
+              id="determinism"
+              min="0"
+              max="100"
+              step="1"
+              .value=${this.determinism}
+              @input=${this._updateDeterminism}
+            ></chat-slider>
+            <chat-slider
+              label="Max Tokens {}"
+              id="max-tokens"
+              min="25"
+              max=${this.app.getCurrentModel().maxTokens}
+              step="25"
+              .value=${this.maxTokens}
+              @input=${this._updateMaxTokens}
+            ></chat-slider>
+          </div>
+          <chat-text-area class="api-key" placeholder="OpenAI API Key.  Leave blank to use this server's key." .value=${this.apiKey} @input=${this._updateApiKey}></chat-text-area>
         </div>
       </chat-container>
       ` : html``}
@@ -242,11 +250,7 @@ export class ChatApp extends LitElement {
     try {
       this.requestUpdate();
       const modelName = (this.model as Model).value
-      if (this.stream) {
-        await this.app.chatStream(this._systemInput.value, modelName, this.determinism, this.maxTokens);
-      } else {
-        await this.app.chatSynchronous(this._systemInput.value, modelName, this.determinism, this.maxTokens);
-      }
+      await this.app.chat(this._systemInput.value, modelName, this.determinism, this.maxTokens, this.apiKey);
     } finally {
       this.requestUpdate();
     }
@@ -282,19 +286,23 @@ export class ChatApp extends LitElement {
     if (this.maxTokens > this.app.getCurrentModel().maxTokens) {
       this.maxTokens = this.app.getCurrentModel().maxTokens;
     }
+    localStorage.setItem("model", JSON.stringify(this.model));
     this.requestUpdate();
-  }
-
-  private _updateStream(e: Event) {
-    this.stream = (e.target as ChatToggle).value;
   }
 
   private _updateDeterminism(e: Event) {
     this.determinism = (e.target as ChatSlider).value;
+    localStorage.setItem("determinism", JSON.stringify(this.determinism));
   }
 
   private _updateMaxTokens(e: Event) {
     this.maxTokens = (e.target as ChatSlider).value;
+    localStorage.setItem("maxTokens", JSON.stringify(this.maxTokens));
+  }
+
+  private _updateApiKey(e: Event) {
+    this.apiKey = (e.target as ChatTextArea).value;
+    localStorage.setItem("apiKey", this.apiKey);
   }
 
   private async _cancel() {
@@ -336,7 +344,7 @@ export class ChatApp extends LitElement {
 
   private async _messageContinue(e: CustomEvent) {
     const message = e.detail as Message;
-    await this.app.continue(message, this._systemInput.value, this.model.value, this.determinism, this.maxTokens);
+    await this.app.continue(message, this._systemInput.value, this.model.value, this.determinism, this.maxTokens, this.apiKey);
     this.requestUpdate();
   }
 
