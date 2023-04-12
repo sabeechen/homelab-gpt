@@ -9,6 +9,7 @@ export class Message {
   cost_usd?: number;
   finish_reason?: string;
   error?: string;
+  start_edited?: boolean;
 }
 export class Model {
   label: string
@@ -85,6 +86,15 @@ export class AppData {
     if (index >= 0) {
       this.messages.splice(index, 1);
     }
+  }
+
+  public insertMessage(oldMessage: Message, newMessage: Message) {
+    let index = 0;
+    if (oldMessage) {
+      index = this.messages.indexOf(oldMessage) + 1;
+    }
+
+    this.messages.splice(index, 0, newMessage);
   }
 
   public truncate(msg: Message) {

@@ -15,6 +15,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { defaultCSS } from "../global-styles"
 import { ChatIcon } from './chat-icon.js';
 import { mdiChatQuestionOutline, mdiNuke } from '@mdi/js';
+import { ChatBar } from './chat-bar.js';
 
 @customElement('chat-app')
 export class ChatApp extends LitElement {
@@ -132,6 +133,7 @@ export class ChatApp extends LitElement {
     ChatButton.properties;
     ChatRadio.properties;
     ChatIcon.properties;
+    ChatBar.properties;
   }
 
   override render() {
@@ -173,8 +175,9 @@ export class ChatApp extends LitElement {
       </chat-container>
       <chat-container>
         <div class="flex-veritcal wide">
+          <chat-bar @click=${this._insertTop}></chat-bar>
           ${repeat(this.app.messages, (msg) => msg.id, (msg, _index) => html`
-            <chat-message class="wide" .message=${msg} @delete=${this._messageDelete} @replay=${this._messageReplay} @continue=${this._messageContinue}></chat-message>
+            <chat-message class="wide" .message=${msg} @delete=${this._messageDelete} @replay=${this._messageReplay} @continue=${this._messageContinue} @insert=${this._insertAfter}></chat-message>
           `)}
         </div>
       </chat-container>
@@ -234,6 +237,29 @@ export class ChatApp extends LitElement {
     } finally {
       this.requestUpdate();
     }
+  }
+
+  private async _insertTop() {
+    const message: Message = {
+      id: uuidv4(),
+      role: "user",
+      message: "",
+      start_edited: true
+    }
+    this.app.insertMessage(null, message);
+    this.requestUpdate();
+  }
+
+  private async _insertAfter(e: CustomEvent) {
+    const message = e.detail as Message;
+    const newMessage: Message = {
+      id: uuidv4(),
+      role: message.role == "user"? "assistant" : "user",
+      message: "",
+      start_edited: true
+    }
+    this.app.insertMessage(message, newMessage);
+    this.requestUpdate();
   }
 
   private _updateSelectedModel() {

@@ -8,4 +8,5 @@ import './controls/chat-slider';
 import './controls/chat-app';
 import './controls/chat-icon';
 import './controls/chat-radio';
+import './controls/chat-bar';
 import './app-data';

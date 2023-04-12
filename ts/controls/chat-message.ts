@@ -9,12 +9,15 @@ import { marked } from 'marked';
 import hljs from 'highlight.js';
 import  {defaultCSS} from "../global-styles"
 import { ChatTextArea } from './chat-text-area';
+import {hljs as hljsCss } from "../css"
+import { ChatBar } from './chat-bar';
 /**
  * A chat message shown in the chat log.
  *
  * @fires replay
  * @fires delete
  * @fires continue
+ * @fires insert
  * @attr message
  */
 @customElement('chat-message')
@@ -33,92 +36,7 @@ export class ChatMessage extends LitElement {
   @query("#edit-text-area")
   _editTextArea: ChatTextArea;
 
-  static override styles = [defaultCSS, css`
-    .hljs {
-      background: #23241f;
-      color: #f8f8f2;
-      white-space: pre;
-    }
-
-    pre code.hljs {
-      display: block;
-      overflow-x: auto;
-      padding: 1em;
-    }
-
-    .hljs-tag,
-    .hljs-subst {
-      color: #f8f8f2;
-    }
-
-    .hljs-strong,
-    .hljs-emphasis {
-      color: #a8a8a2;
-    }
-
-    .hljs-bullet,
-    .hljs-quote,
-    .hljs-number,
-    .hljs-regexp,
-    .hljs-literal,
-    .hljs-link {
-      color: #ae81ff;
-    }
-
-    .hljs-code,
-    .hljs-title,
-    .hljs-section,
-    .hljs-selector-class {
-      color: #a6e22e;
-    }
-
-    .hljs-strong {
-      font-weight: bold;
-    }
-
-    .hljs-emphasis {
-      font-style: italic;
-    }
-
-    .hljs-keyword,
-    .hljs-selector-tag,
-    .hljs-name,
-    .hljs-attr {
-      color: #f92672;
-    }
-
-    .hljs-symbol,
-    .hljs-attribute {
-      color: #66d9ef;
-    }
-
-    .hljs-params,
-    .hljs-title.class_,
-    .hljs-class .hljs-title {
-      color: #f8f8f2;
-    }
-
-    .hljs-string,
-    .hljs-type,
-    .hljs-built_in,
-    .hljs-selector-id,
-    .hljs-selector-attr,
-    .hljs-selector-pseudo,
-    .hljs-addition,
-    .hljs-variable,
-    .hljs-template-variable {
-      color: #e6db74;
-    }
-
-    .hljs-comment,
-    .hljs-deletion,
-    .hljs-meta {
-      color: #75715e;
-    }
-    .log {
-      border-bottom: 2px solid #303030;
-      margin-bottom: 5px;
-    }
+  static override styles = [defaultCSS,  hljsCss, css`
     .user {
       display: flex;
       flex-direction: column;
@@ -155,6 +73,7 @@ export class ChatMessage extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
+      cursor: pointer;
     }
 
     .cost-tokens {
@@ -196,6 +115,18 @@ export class ChatMessage extends LitElement {
   helper() {
     ChatIcon.properties;
     ChatTextArea.properties;
+    ChatBar.properties;
+  }
+
+  override async firstUpdated() {
+    if (this.message) {
+      if (this.message.start_edited) {
+        this.editing = true;
+        this.message.start_edited = false;
+        await this.updateComplete;
+        this._editTextArea.doFocus();
+      }
+    }
   }
 
   override render() {
@@ -225,7 +156,7 @@ export class ChatMessage extends LitElement {
       <div class="log flex-vertical">
         <div class="flex-horizontal">
           <div class="user">
-            <chat-icon class="actor-icon" .path=${this._getUserIcon()}></chat-icon>
+            <chat-icon class="actor-icon" .path=${this._getUserIcon()} @click=${this._toggleRole}></chat-icon>
             ${this.message.cost_usd ? html`<div class="cost">${this._format_cost(this.message.cost_usd)}</div>` : html``}
             ${this.message.cost_tokens ? html`<div class="cost-tokens">${this.message.cost_tokens} tokens</div>` : html``}
           </div>
@@ -252,6 +183,7 @@ export class ChatMessage extends LitElement {
             <chat-icon class="warn-icon" .path=${mdiAlertOutline} .color=${css`#f93333`}></chat-icon><span class="error-message">${this.message.error}</span>
           </div>
         ` : html``}
+        <chat-bar @click=${this._insert}></chat-bar>
       </div>`
   }
 
@@ -267,6 +199,11 @@ export class ChatMessage extends LitElement {
 
   private _isHuman() {
     return this.message.role == "user";
+  }
+
+  private _toggleRole() {
+    this.message.role = this.message.role == "user" ? "assistant" : "user";
+    this.requestUpdate();
   }
 
   private _format_cost(amount: number) {
@@ -317,6 +254,10 @@ export class ChatMessage extends LitElement {
 
   private _continue() {
     this._dispatchEvent("continue");
+  }
+
+  private _insert() {
+    this._dispatchEvent("insert");
   }
 
   private async _copy() {

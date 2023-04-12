@@ -17,7 +17,8 @@ export const defaultCSS = css`
   }
 
   .flex-center {
-    justify-items: center;
+    align-items: center;
     align-content: center;
+    justify-content: center;
   }
   `;
