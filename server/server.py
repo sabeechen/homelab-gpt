@@ -115,25 +115,34 @@ class ChatStreamManager():
         self._read_thread.start()
 
     def request_chat(self, message_start: str, tokens: int, loop, **kwargs):
+        last_message = {
+            'cost_tokens': tokens,
+            'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
+            'message': message_start,
+            'finish_reason': None,
+            'id': self.id,
+            'role': 'assistant'
+        }
         try:
             for chunk in chat_stream_wrapper(**kwargs):
                 if not self._run:
                     return
                 tokens += 1
-                task = asyncio.run_coroutine_threadsafe(self._handle_write(json.dumps({
+                last_message = {
                     'cost_tokens': tokens,
                     'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
                     'message': message_start + chunk['content'],
                     'finish_reason': chunk['finish_reason'],
                     'id': self.id,
                     'role': 'assistant'
-                })), loop)
+                }
+                task = asyncio.run_coroutine_threadsafe(
+                    self._handle_write(json.dumps(last_message)), loop)
                 task.result()
         except Exception as e:
-            asyncio.run_coroutine_threadsafe(self._handle_write(json.dumps({
-                'error': str(e),
-                'id': self.id,
-            })), loop)
+            last_message["error"] = str(e)
+            asyncio.run_coroutine_threadsafe(
+                self._handle_write(json.dumps(last_message)), loop)
         finally:
             asyncio.run_coroutine_threadsafe(self.stop(), loop)
 

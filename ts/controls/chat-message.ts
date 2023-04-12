@@ -3,7 +3,7 @@ import {customElement, property} from 'lit/decorators.js';
 import {consume} from '@lit-labs/context';
 import {type AppData, appContext} from '../app-context';
 import { Message } from '../app-data';
-import { mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan } from '@mdi/js';
+import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan } from '@mdi/js';
 import { ChatIcon } from './chat-icon';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -109,8 +109,6 @@ export class ChatMessage extends LitElement {
       color: #75715e;
     }
     .log {
-      display: flex;
-      flex-direction: row;
       border-bottom: 2px solid #303030;
       margin-bottom: 5px;
     }
@@ -166,7 +164,6 @@ export class ChatMessage extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-
     }
     .action-icon:hover {
       background-color: #00043a;
@@ -174,6 +171,18 @@ export class ChatMessage extends LitElement {
 
     .human {
       font-style: italic;
+    }
+
+    .error-message {
+      color: rgb(249, 180, 180);
+      margin-left: 5px;
+      font-style: italic;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+
+    .error-container {
+      margin-bottom: 10px;
     }
   `];
 
@@ -202,20 +211,28 @@ export class ChatMessage extends LitElement {
       messageHTML.appendChild(child);
     }
     return html`
-      <div class="log">
-        <div class="user">
-          <chat-icon class="actor-icon" .path=${this._getUserIcon()}></chat-icon>
-          ${this.message.cost_usd ? html`<div class="cost">${this._format_cost(this.message.cost_usd)}</div>` : html``}
-          ${this.message.cost_tokens ? html`<div class="cost-tokens">${this.message.cost_tokens} tokens</div>` : html``}
+      <div class="log flex-vertical">
+        <div class="flex-horizontal">
+          <div class="user">
+            <chat-icon class="actor-icon" .path=${this._getUserIcon()}></chat-icon>
+            ${this.message.cost_usd ? html`<div class="cost">${this._format_cost(this.message.cost_usd)}</div>` : html``}
+            ${this.message.cost_tokens ? html`<div class="cost-tokens">${this.message.cost_tokens} tokens</div>` : html``}
+          </div>
+          <div class="${this._isHuman() ? "message human" : "message"}">${messageHTML}</div>
+          <div class="flex-vertical">
+            <chat-icon class="action-icon" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
+            <chat-icon class="action-icon" .path=${mdiReplay} @click=${this._replay}></chat-icon>
+            <chat-icon class="action-icon" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
+            ${this.message.finish_reason == "length" ? 
+            html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
+          </div>
         </div>
-        <div class="${this._isHuman() ? "message human" : "message"}">${messageHTML}</div>
-        <div class="flex-vertical">
-          <chat-icon class="action-icon" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
-          <chat-icon class="action-icon" .path=${mdiReplay} @click=${this._replay}></chat-icon>
-          <chat-icon class="action-icon" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
-          ${this.message.finish_reason == "length" ? 
-          html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
-        </div>
+        ${this.message.error ? html`
+          <div class="flex-horizontal flex-center error-container">
+            <chat-icon class="warn-icon" .path=${mdiAlertOutline} .color=${css`#f93333`}></chat-icon><span class="error-message">${this.message.error}</span>
+          </div>
+        ` : html``}
+        
       </div>`
   }
 

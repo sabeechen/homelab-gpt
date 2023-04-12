@@ -15,7 +15,6 @@ export class ChatTextArea extends LitElement {
       width: 100%;
       box-sizing: border-box;
       resize: vertical;
-      font-family: 'Arial', sans-serif;
     }
 
     /* Apply dark theme to the textarea */

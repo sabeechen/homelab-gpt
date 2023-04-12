@@ -10,4 +10,14 @@ export const defaultCSS = css`
     display: flex;
     flex-direction: column;
   }
+
+  .flex-horizontal {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .flex-center {
+    justify-items: center;
+    align-content: center;
+  }
   `;

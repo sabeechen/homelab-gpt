@@ -4,10 +4,11 @@ import { v4 as uuidv4 } from 'uuid';
 export class Message {
   id: string;
   role: string;
-  message: string;
+  message?: string;
   cost_tokens?:number;
   cost_usd?: number;
   finish_reason?: string;
+  error?: string;
 }
 export class Model {
   label: string
@@ -111,7 +112,6 @@ export class AppData {
     if (messages == null) {
       messages = this.messages;
     }
-    
     let continuation = "";
     if (message == null) {
       message = {
@@ -123,7 +123,6 @@ export class AppData {
     } else {
       continuation = message.message;
     }
-    
     const request = {
       messages: messages,
       model: model,
@@ -146,17 +145,20 @@ export class AppData {
         app.busy = false;
         app.publish();
       })
-      .onError((_, _ev) => {
+      .onError((_, ev) => {
         console.log('Connect Error');
+        message = {...message};
+        message.error = "Websocket error: " + ev;
+        this.messages[index] = message;
         app.busy = false;
         app.publish();
       })
       .onMessage((_i, ev) => {
         const data = JSON.parse(ev.data);
 
-        // TODO: this shoould look up the message based on its id.
+        // TODO: this should look up the message based on its id.
         this.messages[index] = data;
-        message.message = data.message;
+        message = data;
         app.publish();
       })
       .onRetry((_i, _ev) => {
