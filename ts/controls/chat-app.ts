@@ -12,7 +12,9 @@ import { ChatSlider } from './chat-slider.js';
 import { ChatMessage } from './chat-message.js';
 import { ChatRadio } from './chat-radio.js';
 import { v4 as uuidv4 } from 'uuid';
-import  {defaultCSS} from "../global-styles"
+import { defaultCSS } from "../global-styles"
+import { ChatIcon } from './chat-icon.js';
+import { mdiChatQuestionOutline, mdiNuke } from '@mdi/js';
 
 @customElement('chat-app')
 export class ChatApp extends LitElement {
@@ -96,6 +98,10 @@ export class ChatApp extends LitElement {
         justify-content: center;
         display: flex;
       }
+
+      .button-icon {
+        margin-right: 5px;
+      }
   `];
 
   @query('#chat-input')
@@ -124,6 +130,7 @@ export class ChatApp extends LitElement {
     ChatContainer.properties;
     ChatButton.properties;
     ChatRadio.properties;
+    ChatIcon.properties;
   }
 
   override render() {
@@ -190,10 +197,16 @@ export class ChatApp extends LitElement {
             </chat-button>` :
             html`
             <chat-button id="submit" @click=${this._chat}>
-              <span> Submit </span>
+              <div class="flex-horizontal flex-center">
+                <chat-icon class="button-icon" .path=${mdiChatQuestionOutline}></chat-icon>
+                <span>Submit </span>
+              </div>
             </chat-button>`}
           <chat-button id="clear_chat" ?danger=${true} @click=${this._clear}>
-            <span> Clear Chat </span>
+            <div class="flex-horizontal flex-center">
+              <chat-icon class="button-icon" .path=${mdiNuke}></chat-icon>
+              <span>Clear Chat</span>
+            </div>
           </chat-button>
         </div>
       </chat-container>
@@ -237,6 +250,7 @@ export class ChatApp extends LitElement {
   private async _clear() {
     this.app.messages.length = 0;
     this.requestUpdate();
+    this._chatInput.doFocus();
   }
 
   private _addChatRequest() {

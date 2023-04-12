@@ -31,7 +31,7 @@ export class ChatMessage extends LitElement {
   editing: boolean;
 
   @query("#edit-text-area")
-  _editTextArea: HTMLTextAreaElement;
+  _editTextArea: ChatTextArea;
 
   static override styles = [defaultCSS, css`
     .hljs {
@@ -299,6 +299,7 @@ export class ChatMessage extends LitElement {
     this.editing = true;
     await this.updateComplete;
     this._editTextArea.value = this.message.message;
+    this._editTextArea.doFocus();
   }
 
   private _saveEdit() {

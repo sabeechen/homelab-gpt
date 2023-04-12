@@ -1,6 +1,11 @@
 import {LitElement, html, css, CSSResult} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 
+/**
+ * Displays an svg path
+ * @attr color
+ * @attr path
+ */
 @customElement('chat-icon')
 export class ChatIcon extends LitElement {
   static override styles = css`

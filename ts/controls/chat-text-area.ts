@@ -72,14 +72,17 @@ export class ChatTextArea extends LitElement {
 
   override render() {
     return html`
-      <textarea
-          class="chat-input"
-          rows=${this.rows}
-          .value=${this.value}
-          @input=${this.changeName}
-          placeholder="${this.placeholder}"
-          @keydown=${this._submitCheck}
-        ></textarea>
+    <form>
+        <textarea
+            inputmode="enter"
+            class="chat-input"
+            rows=${this.rows}
+            .value=${this.value}
+            @input=${this.changeName}
+            placeholder="${this.placeholder}"
+            @keydown=${this._submitCheck}
+          ></textarea>
+  </form>
     `;
   }
 
@@ -90,6 +93,7 @@ export class ChatTextArea extends LitElement {
 
   public doFocus() {
     this._textarea.focus();
+    this._textarea.selectionStart = this._textarea.selectionEnd = this._textarea.value.length;
   }
 
   private async _submitCheck(event: KeyboardEvent) {
