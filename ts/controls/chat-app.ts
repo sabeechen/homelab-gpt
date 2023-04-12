@@ -1,5 +1,5 @@
 import {LitElement, html, css} from 'lit';
-import {customElement, property, query} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {repeat} from 'lit/directives/repeat.js';
 import { AppData, Message, Model } from '../app-data.js';
 import {appContext} from '../app-context.js'
@@ -14,7 +14,7 @@ import { ChatRadio } from './chat-radio.js';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultCSS } from "../global-styles"
 import { ChatIcon } from './chat-icon.js';
-import { mdiChatOutline, mdiNuke } from '@mdi/js';
+import { mdiChatOutline, mdiCog, mdiCogOff, mdiNuke } from '@mdi/js';
 import { ChatBar } from './chat-bar.js';
 
 @customElement('chat-app')
@@ -121,6 +121,9 @@ export class ChatApp extends LitElement {
   @query('#max-tokens')
   _maxTokens: ChatSlider;
 
+  @state({})
+  showOptions: boolean
+
   public helper() {
     ChatMessage.properties;
     ChatSlider.properties;
@@ -142,13 +145,23 @@ export class ChatApp extends LitElement {
       <chat-container>
         <div class="wide">
           <h3>Prompt</h3>
-          <chat-text-area
-            placeholder="You can enter anything here, its instructions about what the AI should be.  The default is to be a helpful assistant."
-            id="system-input"
-            rows="2"
-          ></chat-text-area>
+          <div class="flex-horizontal">
+            <chat-text-area
+              placeholder="You can enter anything here, its instructions about what the AI should be.  The default is to be a helpful assistant."
+              id="system-input"
+              class="flex-fill"
+              rows="2"
+            ></chat-text-area>
+            <chat-button @click=${this._toggleOptions}>
+              <div class="flex-horizontal flex-center">
+                <chat-icon class="button-icon" .path=${this.showOptions ? mdiCogOff : mdiCog}></chat-icon>
+                <span>Options</span>
+              </div>
+            </chat-button>
+          </div>
         </div>
       </chat-container>
+      ${this.showOptions ? html`
       <chat-container>
           <chat-radio id="model-select" .options=${this.app.models} .value=${this.app.getCurrentModel()} @input=${this._updateSelectedModel}></chat-radio>
           <chat-toggle id="stream" label="Stream" ?value=${true}></chat-toggle>
@@ -170,6 +183,7 @@ export class ChatApp extends LitElement {
           ></chat-slider>
         </div>
       </chat-container>
+      ` : html``}
       <chat-container>
         <div class="flex-veritcal wide">
           <chat-bar @click=${this._insertTop}></chat-bar>
@@ -309,6 +323,10 @@ export class ChatApp extends LitElement {
     const modelName = (this._modelSelect.value as Model).value
     await this.app.continue(message, this._systemInput.value, modelName, this._determinism.value, this._maxTokens.value);
     this.requestUpdate();
+  }
+
+  private _toggleOptions() {
+    this.showOptions = !this.showOptions;
   }
 }
 

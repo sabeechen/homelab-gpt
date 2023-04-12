@@ -21,6 +21,9 @@ export const defaultCSS = css`
     align-content: center;
     justify-content: center;
   }
+  .flex-fill {
+    flex-grow: 1;
+  }
   * {
     box-sizing: border-box;
   }
