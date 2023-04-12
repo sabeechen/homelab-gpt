@@ -1,13 +1,14 @@
 import {LitElement, html, css} from 'lit';
-import {customElement, property} from 'lit/decorators.js';
+import {customElement, property, state, query} from 'lit/decorators.js';
 import {consume} from '@lit-labs/context';
 import {type AppData, appContext} from '../app-context';
 import { Message } from '../app-data';
-import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan } from '@mdi/js';
+import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPencil, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan, mdiContentSaveEdit, mdiClose } from '@mdi/js';
 import { ChatIcon } from './chat-icon';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
 import  {defaultCSS} from "../global-styles"
+import { ChatTextArea } from './chat-text-area';
 /**
  * A chat message shown in the chat log.
  *
@@ -25,6 +26,12 @@ export class ChatMessage extends LitElement {
 
   @property({attribute: true})
   public message: Message;
+
+  @state({})
+  editing: boolean;
+
+  @query("#edit-text-area")
+  _editTextArea: HTMLTextAreaElement;
 
   static override styles = [defaultCSS, css`
     .hljs {
@@ -186,8 +193,12 @@ export class ChatMessage extends LitElement {
     }
   `];
 
-  override render() {
+  helper() {
     ChatIcon.properties;
+    ChatTextArea.properties;
+  }
+
+  override render() {
     marked.setOptions({
       renderer: new marked.Renderer(),
       highlight: function (code) {
@@ -218,21 +229,29 @@ export class ChatMessage extends LitElement {
             ${this.message.cost_usd ? html`<div class="cost">${this._format_cost(this.message.cost_usd)}</div>` : html``}
             ${this.message.cost_tokens ? html`<div class="cost-tokens">${this.message.cost_tokens} tokens</div>` : html``}
           </div>
+          ${this.editing ? html`
+          <div class="message"><chat-text-area id="edit-text-area" class="wide" rows=6 @submit=${this._saveEdit}></chat-text-area></div>
+          <div class="flex-vertical">
+            <chat-icon class="action-icon" .path=${mdiContentSaveEdit} @click=${this._saveEdit}></chat-icon>
+            <chat-icon class="action-icon" .path=${mdiClose} @click=${this._cancelEdit}></chat-icon>
+          </div>
+          ` : html`
           <div class="${this._isHuman() ? "message human" : "message"}">${messageHTML}</div>
           <div class="flex-vertical">
             <chat-icon class="action-icon" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
             <chat-icon class="action-icon" .path=${mdiReplay} @click=${this._replay}></chat-icon>
+            <chat-icon class="action-icon" .path=${mdiPencil} @click=${this._edit}></chat-icon>
             <chat-icon class="action-icon" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
-            ${this.message.finish_reason == "length" ? 
+            ${this.message.finish_reason == "length" ?
             html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
           </div>
+          `}
         </div>
         ${this.message.error ? html`
           <div class="flex-horizontal flex-center error-container">
             <chat-icon class="warn-icon" .path=${mdiAlertOutline} .color=${css`#f93333`}></chat-icon><span class="error-message">${this.message.error}</span>
           </div>
         ` : html``}
-        
       </div>`
   }
 
@@ -274,6 +293,21 @@ export class ChatMessage extends LitElement {
 
   private _replay() {
     this._dispatchEvent("replay");
+  }
+
+  private async _edit() {
+    this.editing = true;
+    await this.updateComplete;
+    this._editTextArea.value = this.message.message;
+  }
+
+  private _saveEdit() {
+    this.message.message = this._editTextArea.value;
+    this.editing = false;
+  }
+
+  private _cancelEdit() {
+    this.editing = false;
   }
 
   private _delete() {

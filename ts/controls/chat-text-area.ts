@@ -7,6 +7,7 @@ import  {defaultCSS} from "../global-styles"
  *
  * @attr rows - The number of textarea rows
  * @attr placeholder - The textarea placeholder text
+ * @fires submit
  */
 @customElement('chat-text-area')
 export class ChatTextArea extends LitElement {
@@ -77,6 +78,7 @@ export class ChatTextArea extends LitElement {
           .value=${this.value}
           @input=${this.changeName}
           placeholder="${this.placeholder}"
+          @keydown=${this._submitCheck}
         ></textarea>
     `;
   }
@@ -88,6 +90,15 @@ export class ChatTextArea extends LitElement {
 
   public doFocus() {
     this._textarea.focus();
+  }
+
+  private async _submitCheck(event: KeyboardEvent) {
+    if (event.ctrlKey && event.key === 'Enter') {
+      const myEvent = new Event("submit", {
+        bubbles: true,
+        composed: true });
+      this.dispatchEvent(myEvent);
+    }
   }
 }
 

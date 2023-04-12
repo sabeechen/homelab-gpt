@@ -176,7 +176,7 @@ export class ChatApp extends LitElement {
             rows="4"
             placeholder="Start the conversation here"
             id="chat-input"
-            @keydown=${this._submitCheck}
+            @submit=${this._chat}
           ></chat-text-area>
         </div>
       </chat-container>
@@ -249,12 +249,6 @@ export class ChatApp extends LitElement {
       this.app.messages.push(message);
       this._chatInput.value = '';
       this._chatInput.doFocus();
-    }
-  }
-
-  private async _submitCheck(event: KeyboardEvent) {
-    if (event.ctrlKey && event.key === 'Enter') {
-      await this._chat();
     }
   }
 
