@@ -17,9 +17,20 @@ export class Model {
   maxTokens: number
 }
 
+export class  Settings {
+  determinism = 50;
+  max_tokens = 1000;
+  model = "gpt-4";
+  api_key = "";
+  prompt = "";
+}
+
 
 export class AppData {
   messages: Message[] = [];
+  settings: Settings = new Settings();
+
+  // Internal state, which should not be serialized
   models: Model[] = [
       {
         label: "GPT3 ($)",
@@ -33,10 +44,10 @@ export class AppData {
       }
     ];
   busy = false;
+  _dirtySave:NodeJS.Timeout = null;
   abortController: AbortController|undefined = undefined;
   streamWebSocket: Websocket|undefined = undefined;
   publishCallback: () => void|undefined = undefined;
-  currentModel: Model = this.models[1];
 
   constructor() {
   }
@@ -52,6 +63,7 @@ export class AppData {
       this.streamWebSocket = undefined;
     }
     this.busy = false;
+    this.dirty();
   }
 
   public async delete(msg: Message) {
@@ -60,6 +72,7 @@ export class AppData {
     if (index >= 0) {
       this.messages.splice(index, 1);
     }
+    this.dirty();
   }
 
   public insertMessage(oldMessage: Message, newMessage: Message) {
@@ -69,6 +82,7 @@ export class AppData {
     }
 
     this.messages.splice(index, 0, newMessage);
+    this.dirty();
   }
 
   public truncate(msg: Message) {
@@ -129,6 +143,7 @@ export class AppData {
         console.log('Connection Closed');
         app.busy = false;
         app.publish();
+        app.dirty();
       })
       .onError((_, ev) => {
         console.log('Connect Error');
@@ -137,6 +152,7 @@ export class AppData {
         this.messages[index] = message;
         app.busy = false;
         app.publish();
+        app.dirty();
       })
       .onMessage((_i, ev) => {
         const data = JSON.parse(ev.data);
@@ -163,6 +179,61 @@ export class AppData {
   }
 
   public getCurrentModel() {
-    return this.currentModel;
+    for (const model of this.models) {
+      if (model.label == this.settings.model) {
+        return model;
+      }
+    }
+    return this.models[1];
+  }
+
+  public toJSON() {
+    const finalObj: any = {};
+    finalObj["messages"] = this.messages;
+    finalObj["settings"] = this.settings;
+    finalObj['serializationVersion'] = 1;
+    return finalObj;
+  }
+
+  public static load(source: any = null) {
+    const data = new AppData();
+
+    if (source == null) {
+      const fromStorage = localStorage.getItem("appData");
+      if (fromStorage) {
+        source = JSON.parse(fromStorage);
+      } else {
+        source = data.toJSON();
+      }
+    }
+    data.messages = source["messages"] as Message[] || [];
+    data.settings = source["settings"] as Settings || new Settings;
+    return data;
+  }
+
+  public static tryLoad() {
+    try {
+      return this.load();
+    } catch (e) {
+      console.error(e);
+      console.error("Error loading application data from local storage.  Using defaults.");
+      return new AppData();
+    }
+  }
+
+
+  public dirty() {
+    if (this._dirtySave) {
+      clearTimeout(this._dirtySave);
+      this._dirtySave = null;
+    }
+    this._dirtySave = setTimeout(() => {
+      this._doSave();
+    }, 3000)
+  }
+
+  private _doSave() {
+    console.log("Saving to local storage");
+    localStorage.setItem("appData", JSON.stringify(this));
   }
 }

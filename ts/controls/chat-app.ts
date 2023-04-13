@@ -14,7 +14,7 @@ import { ChatRadio } from './chat-radio.js';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultCSS } from "../global-styles"
 import { ChatIcon } from './chat-icon.js';
-import { mdiChatOutline, mdiCog, mdiCogOff, mdiNuke } from '@mdi/js';
+import { mdiChatOutline, mdiCog, mdiCogOff, mdiDatabaseExportOutline, mdiNuke, mdiDatabaseImportOutline } from '@mdi/js';
 import { ChatBar } from './chat-bar.js';
 
 @customElement('chat-app')
@@ -22,7 +22,7 @@ export class ChatApp extends LitElement {
 
   @provide({context: appContext})
   @property({type: Object})
-  app = new AppData();
+  app = AppData.tryLoad();
 
   static override styles = [defaultCSS, css`
       :host {
@@ -114,6 +114,9 @@ export class ChatApp extends LitElement {
   @query('#system-input')
   _systemInput: ChatTextArea;
 
+  @query("#export-upload")
+  _exportUpload: HTMLInputElement;
+
   @state({})
   showOptions: boolean
 
@@ -156,6 +159,7 @@ export class ChatApp extends LitElement {
               id="system-input"
               class="flex-fill"
               rows="2"
+              @input=${this._syncSettings}
             ></chat-text-area>
             <chat-button @click=${this._toggleOptions}>
               <div class="flex-horizontal flex-center">
@@ -169,7 +173,7 @@ export class ChatApp extends LitElement {
       ${this.showOptions ? html`
       <chat-container>
         <div class="flex-vertical flex-center">
-          <div class="flex-horizontal flex-center">
+        <div class="flex-horizontal flex-center flex-wrap">
             <chat-radio id="model-select" .options=${this.app.models} .value=${this.model} @input=${this._updateSelectedModel}></chat-radio>
             <chat-slider
               label="Determinism {}%"
@@ -191,6 +195,21 @@ export class ChatApp extends LitElement {
             ></chat-slider>
           </div>
           <chat-text-area class="api-key" placeholder="OpenAI API Key.  Leave blank to use this server's key." .value=${this.apiKey} @input=${this._updateApiKey}></chat-text-area>
+          <div class="flex-horizontal flex-center wide">
+            <chat-button @click=${this._downloadState}>
+              <div class="flex-horizontal flex-center">
+                <chat-icon class="button-icon" .path=${mdiDatabaseExportOutline}></chat-icon>
+                  <span>Export</span>
+              </div>
+            </chat-button>
+            <chat-button @click=${() => this._exportUpload.click()}>
+                <div class="flex-horizontal flex-center">
+                  <input style="display: none;" type="file" id="export-upload" accept=".json" @change=${this._handleExportSelect}>
+                  <chat-icon class="button-icon" .path=${mdiDatabaseImportOutline}></chat-icon>
+                  <span>Import</span>
+                </div>
+            </chat-button>
+          </div>
         </div>
       </chat-container>
       ` : html``}
@@ -216,18 +235,18 @@ export class ChatApp extends LitElement {
       <chat-container>
         <div class="buttons">
           ${this.app.busy ?
-            html`
-            <chat-button id="cancel" class="hidden button" @click=${this._cancel}>
-              <div class="loader"></div>
-              <span> Cancel </span>
-            </chat-button>` :
-            html`
-            <chat-button id="submit" @click=${this._chat}>
-              <div class="flex-horizontal flex-center">
-                <chat-icon style="transform: scaleX(-1);" class="button-icon" .path=${mdiChatOutline}></chat-icon>
-                <span>Submit </span>
-              </div>
-            </chat-button>`}
+          html`
+          <chat-button id="cancel" class="hidden button" @click=${this._cancel}>
+            <div class="loader"></div>
+            <span> Cancel </span>
+          </chat-button>` :
+          html`
+          <chat-button id="submit" @click=${this._chat}>
+            <div class="flex-horizontal flex-center">
+              <chat-icon style="transform: scaleX(-1);" class="button-icon" .path=${mdiChatOutline}></chat-icon>
+              <span>Submit </span>
+            </div>
+          </chat-button>`}
           <chat-button id="clear_chat" ?danger=${true} @click=${this._clear}>
             <div class="flex-horizontal flex-center">
               <chat-icon class="button-icon" .path=${mdiNuke}></chat-icon>
@@ -243,6 +262,11 @@ export class ChatApp extends LitElement {
     await this.updateComplete;
     this._chatInput.doFocus();
     this.app.bindToUpdates(() => this.requestUpdate());
+    this.determinism = this.app.settings.determinism;
+    this.maxTokens = this.app.settings.max_tokens;
+    this.model = this.app.getCurrentModel();
+    this.apiKey = this.app.settings.api_key;
+    this._systemInput.value = this.app.settings.prompt;
   }
 
   private async _chat() {
@@ -281,28 +305,36 @@ export class ChatApp extends LitElement {
 
   private _updateSelectedModel(e: Event) {
     const model = (e.target as ChatRadio).value as Model
-    this.app.currentModel = model;
     this.model = model;
+    this._syncSettings();
     if (this.maxTokens > this.app.getCurrentModel().maxTokens) {
       this.maxTokens = this.app.getCurrentModel().maxTokens;
     }
-    localStorage.setItem("model", JSON.stringify(this.model));
     this.requestUpdate();
   }
 
   private _updateDeterminism(e: Event) {
     this.determinism = (e.target as ChatSlider).value;
-    localStorage.setItem("determinism", JSON.stringify(this.determinism));
+    this._syncSettings();
   }
 
   private _updateMaxTokens(e: Event) {
     this.maxTokens = (e.target as ChatSlider).value;
-    localStorage.setItem("maxTokens", JSON.stringify(this.maxTokens));
+    this._syncSettings();
   }
 
   private _updateApiKey(e: Event) {
     this.apiKey = (e.target as ChatTextArea).value;
-    localStorage.setItem("apiKey", this.apiKey);
+    this._syncSettings();
+  }
+
+  private _syncSettings() {
+    this.app.settings.api_key = this.apiKey;
+    this.app.settings.determinism = this.determinism;
+    this.app.settings.max_tokens = this.maxTokens;
+    this.app.settings.model = this.model.value;
+    this.app.settings.prompt = this._systemInput.value;
+    this.app.dirty();
   }
 
   private async _cancel() {
@@ -350,6 +382,65 @@ export class ChatApp extends LitElement {
 
   private _toggleOptions() {
     this.showOptions = !this.showOptions;
+  }
+
+  private _downloadState() {
+    const dataBlob = new Blob([JSON.stringify(this.app, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const anchorElement = document.createElement('a');
+
+    anchorElement.href = url;
+    anchorElement.download = `AI Chat ${this._formatDate(new Date())} .json`;
+    anchorElement.style.display = 'none';
+
+    document.body.appendChild(anchorElement);
+    anchorElement.click();
+    document.body.removeChild(anchorElement);
+
+    setTimeout(() => {
+        URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  private async _handleExportSelect(event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files.length > 0) {
+      const file = target.files[0];
+      try {
+        const app = AppData.load(await this._readFileAsJSON(file));
+        this.app = app;
+        this.requestUpdate();
+      } catch (error) {
+        console.error("Error reading file:", error);
+      }
+    }
+  }
+  private _readFileAsJSON(file: File): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const json = JSON.parse(reader.result as string);
+          resolve(json);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = () => {
+        reject(reader.error);
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  private _formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}-${minutes}-${seconds}`;
   }
 }
 

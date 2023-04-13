@@ -24,6 +24,11 @@ export const defaultCSS = css`
   .flex-fill {
     flex-grow: 1;
   }
+
+  .flex-wrap {
+    flex-wrap: wrap;
+  }
+
   * {
     box-sizing: border-box;
   }
