@@ -22,8 +22,9 @@ export class ChatContainer extends LitElement {
         :host {
           width: calc(100% - 10px);
           padding: 5px 5px;
-          margin: 0px;}
+          margin: 0px;
         }
+      }
   `;
 
   override render() {
