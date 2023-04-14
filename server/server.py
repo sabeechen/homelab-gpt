@@ -1,21 +1,50 @@
 import aiohttp.web as web
-import aiohttp
 import os
 import openai
-import functools
 import asyncio
 import json
 import threading
 import uuid
+import tiktoken
+from typing import Union, Dict, List
+from dataclasses import dataclass
 
-from transformers import GPT2TokenizerFast
+GPT3 = 'gpt-3.5-turbo'
+GPT4 = 'gpt-4'
+GPT4_32K = 'gpt-4-32k'
 
-COST_PER_TOKEN = {
-    "gpt-4": 0.00006,
-    "gpt-3.5-turbo": 0.000002,
+
+@dataclass
+class OpenAiModel:
+    name: str
+    token_cost_completion: float
+    token_cost_prompt: float
+    encoding: tiktoken.Encoding
+
+    def tokenCount(self, content: Union[str, Dict[str, str],  List[Dict[str, str]]]) -> int:
+        if isinstance(content, str):
+            return len(self.encoding.encode(content))
+        if isinstance(content, dict):
+            total = 0
+            for key in content.keys():
+                total += self.tokenCount(key) + self.tokenCount(content[key])
+            return total
+        if isinstance(content, list):
+            total = 0
+            for item in content:
+                total += self.tokenCount(item)
+            return total
+        return 0
+
+
+MODELS: Dict[str, OpenAiModel] = {
+    GPT4: OpenAiModel(GPT4, 0.06 / 1000, 0.03 / 1000, tiktoken.encoding_for_model(GPT4)),
+    GPT3: OpenAiModel(GPT3, 0.002 / 1000, 0.002 / 1000, tiktoken.encoding_for_model(GPT3)),
+    GPT4_32K: OpenAiModel(GPT4_32K, 0.002 / 1000, 0.002 /
+                          1000, tiktoken.encoding_for_model(GPT4_32K))
 }
 
-DEFAULT_SYSTEM_MESSAGE = "You are a helpful and consice assistant."
+DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
 
 
 def chat_stream_wrapper(api_key: str, **kwargs):  # Your wrapper for async use
@@ -41,11 +70,10 @@ async def async_iterable(blocking_method, *args, **kwargs):
 
 
 class ChatStreamManager():
-    def __init__(self, ws: web.WebSocketResponse, tokenizer):
+    def __init__(self, ws: web.WebSocketResponse):
         self._ws = ws
         self._read_task = None
         self._write_task = None
-        self._tokenizer = tokenizer
         self._read_thread: threading.Thread | None = None
         self._write_queue = asyncio.Queue(1000)
         self._run = True
@@ -75,21 +103,24 @@ class ChatStreamManager():
         # TODO: consider emptying the queue
         await self._write_queue.put(data)
 
+    def _getModel(self, model: str):
+        return MODELS.get(model, MODELS.get(GPT4))
+
     async def handle_chat(self, data):
         prompt = data.get('prompt', DEFAULT_SYSTEM_MESSAGE)
         if len(prompt) == 0:
             prompt = DEFAULT_SYSTEM_MESSAGE
         messages = data['messages']
-        model = data['model']
+        model = data.get('model', GPT3)
         max_tokens = data['max_tokens']
         message_start = data.get("continuation", "")
         api_key = data.get("api_key", os.environ.get('OPENAI_API_KEY'))
         if len(api_key) == 0:
             api_key = os.environ.get('OPENAI_API_KEY')
         # Format a chat request to the OpenAI API
-        api_messages = [{"role": "system", "content": prompt}]
-        tokens_used = len(self._tokenizer(
-            "system").data['input_ids']) + len(self._tokenizer(prompt).data['input_ids'])
+        api_messages: List[Dict[str, str]] = [
+            {"role": "system", "content": prompt}]
+        model_data = self._getModel(model)
         temperature = data.get('temperature', 1.0)
         for message in messages:
             api_message = {
@@ -97,20 +128,19 @@ class ChatStreamManager():
                 "content": message.get("message", "")
             }
             api_messages.append(api_message)
-            tokens_used += len(self._tokenizer(
-                api_message.get("content")).data['input_ids'])
-            tokens_used += len(self._tokenizer(
-                api_message.get("role")).data['input_ids'])
-        self._read_thread = threading.Thread(target=self.request_chat, args=(message_start, tokens_used, asyncio.get_event_loop(), api_key), kwargs={
+        self._read_thread = threading.Thread(target=self.request_chat, args=(message_start, model_data, asyncio.get_event_loop(), api_key), kwargs={
                                              'model': model, 'messages': api_messages, 'temperature': temperature, 'max_tokens': max_tokens})
         self._read_thread.start()
 
-    def request_chat(self, message_start: str, tokens: int, loop, api_key: str, **kwargs):
+    def request_chat(self, message_start: str, model_data: OpenAiModel, loop, api_key: str, **kwargs):
+        prompt_tokens = model_data.tokenCount(kwargs["messages"])
+        completion_tokens = 0
         if (len(message_start) > 0):
             message_start += " "
         last_message = {
-            'cost_tokens': tokens,
-            'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
+            'cost_tokens_completion': completion_tokens,
+            'cost_tokens_prompt': prompt_tokens,
+            'cost_usd': prompt_tokens * model_data.token_cost_prompt + completion_tokens * model_data.token_cost_completion,
             'message': message_start,
             'finish_reason': None,
             'id': self.id,
@@ -120,10 +150,11 @@ class ChatStreamManager():
             for chunk in chat_stream_wrapper(api_key, **kwargs):
                 if not self._run:
                     return
-                tokens += 1
+                completion_tokens += 1
                 last_message = {
-                    'cost_tokens': tokens,
-                    'cost_usd': tokens * COST_PER_TOKEN.get(str(kwargs.get('model')), 0),
+                    'cost_tokens_completion': completion_tokens,
+                    'cost_tokens_prompt': prompt_tokens,
+                    'cost_usd': prompt_tokens * model_data.token_cost_prompt + completion_tokens * model_data.token_cost_completion,
                     'message': message_start + chunk['content'],
                     'finish_reason': chunk['finish_reason'],
                     'id': self.id,
@@ -166,13 +197,6 @@ class ChatStreamManager():
 # and handles the chat API endpoint
 class Server():
     def __init__(self):
-        print("Loading tokenizer")
-        try:
-            self.tokenizer = GPT2TokenizerFast(vocab_file=self.get_path(
-                'model/vocab.json'), merges_file=self.get_path('model/merges.txt'))
-            print("Tokenizer Loaded")
-        except:
-            print("Tokenizer failed")
         pass
 
     async def start(self):
@@ -184,8 +208,9 @@ class Server():
         ])
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, "0.0.0.0", 80)
+        site = web.TCPSite(runner, "0.0.0.0", 8080)
         await site.start()
+        print("Server Started")
 
     # takes in a path and returns the fully qualified path relative to this file
     def get_path(self, path):
@@ -197,7 +222,7 @@ class Server():
     async def websocket_stream_handler(self, req: web.Request):
         ws = web.WebSocketResponse()
         await ws.prepare(req)
-        manager = ChatStreamManager(ws, self.tokenizer)
+        manager = ChatStreamManager(ws)
         await manager.start()
         await manager.closed()
         return ws

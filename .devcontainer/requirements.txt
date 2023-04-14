@@ -1,4 +1,4 @@
 aiohttp
 openai
-transformers
+tiktoken
 uuid

@@ -5,7 +5,8 @@ export class Message {
   id: string;
   role: string;
   message?: string;
-  cost_tokens?:number;
+  cost_tokens_completion?:number;
+  cost_tokens_prompt?: number;
   cost_usd?: number;
   finish_reason?: string;
   error?: string;
@@ -33,14 +34,19 @@ export class AppData {
   // Internal state, which should not be serialized
   models: Model[] = [
       {
-        label: "GPT3 ($)",
+        label: "GPT3 💲",
         value: "gpt-3.5-turbo",
-        maxTokens: 4096
+        maxTokens: 1024 * 4
       },
       {
-        label: "GPT4 ($$$)",
+        label: "GPT4 💵",
         value: "gpt-4",
-        maxTokens: 8192,
+        maxTokens: 1024 * 8,
+      },
+      {
+        label: "GPT4-32K 💰",
+        value: "gpt-4-32k",
+        maxTokens: 1024 * 32,
       }
     ];
   busy = false;
@@ -180,7 +186,7 @@ export class AppData {
 
   public getCurrentModel() {
     for (const model of this.models) {
-      if (model.label == this.settings.model) {
+      if (model.value == this.settings.model) {
         return model;
       }
     }
@@ -191,7 +197,7 @@ export class AppData {
     const finalObj: any = {};
     finalObj["messages"] = this.messages;
     finalObj["settings"] = this.settings;
-    finalObj['serializationVersion'] = 1;
+    finalObj['serializationVersion'] = 2;
     return finalObj;
   }
 
@@ -206,9 +212,23 @@ export class AppData {
         source = data.toJSON();
       }
     }
+    this.upgradeStoredData(source);
+
     data.messages = source["messages"] as Message[] || [];
     data.settings = source["settings"] as Settings || new Settings;
     return data;
+  }
+
+  public static upgradeStoredData(source: any) {
+    if (source.serializationVersion == 1) {
+      for (const message of source.messages) {
+        if (message.cost_tokens) {
+            message.cost_tokens_completion = message.cost_tokens;
+            message.cost_tokens = undefined;
+        }
+        source.serializationVersion = 2;
+      }
+    }
   }
 
   public static tryLoad() {
