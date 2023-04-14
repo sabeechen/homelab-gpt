@@ -20,7 +20,7 @@ export class ChatContainer extends LitElement {
 
       @media (max-width: 768px) {
         :host {
-          width: calc(100% - 10px);
+          width: 100%;
           padding: 5px 5px;
           margin: 0px;
         }

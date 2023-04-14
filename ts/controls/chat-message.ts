@@ -128,6 +128,11 @@ export class ChatMessage extends LitElement {
       gap: 5px;
       margin-top: 10px;
       float: right;
+      border-width: 0px 0px 1px 1px;
+      border-style: solid;
+      border-color: var(--grey);
+      margin-left: 4px;
+      padding: 2px;
     }
   `];
 

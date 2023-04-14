@@ -89,6 +89,17 @@ export class ChatApp extends LitElement {
         margin-left: 15px;
       }
 
+      @media (max-width: 768px) {
+        header {
+          height: 42px;
+        }
+
+        .logo {
+          width: 29px;
+          height: 29px;
+        }
+      }
+
       nav a:hover {
         color: #f1c40f;
       }

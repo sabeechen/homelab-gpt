@@ -175,10 +175,11 @@ PERFORMANCE OF THIS SOFTWARE.
 
       @media (max-width: 768px) {
         :host {
-          width: calc(100% - 10px);
+          width: 100%;
           padding: 5px 5px;
-          margin: 0px;}
+          margin: 0px;
         }
+      }
   `,Ee=ue([se("chat-container")],Ee);let Se=class extends ae{constructor(){super(...arguments),this.label="",this.value=!1}render(){return U`
       <div class="dark-checkbox" @click="${()=>this.value=!this.value}">
         <input type="checkbox" ?checked=${this.value} />
@@ -640,6 +641,11 @@ class ht{constructor(e,t,n,a){var i;if(this.subscribe=!1,this.provided=!1,this.v
       gap: 5px;
       margin-top: 10px;
       float: right;
+      border-width: 0px 0px 1px 1px;
+      border-style: solid;
+      border-color: var(--grey);
+      margin-left: 4px;
+      padding: 2px;
     }
   `],ue([
 /**
@@ -878,6 +884,17 @@ function({context:e,subscribe:t}){return re({finisher:(n,a)=>{n.addInitializer((
         color: #ffffff;
         text-decoration: none;
         margin-left: 15px;
+      }
+
+      @media (max-width: 768px) {
+        header {
+          height: 42px;
+        }
+
+        .logo {
+          width: 29px;
+          height: 29px;
+        }
       }
 
       nav a:hover {
