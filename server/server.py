@@ -49,6 +49,7 @@ class ChatStreamManager():
         self._read_thread: threading.Thread | None = None
         self._write_queue = asyncio.Queue(1000)
         self._run = True
+        self._stopwriting = False
         self._stop = asyncio.Event()
         self.id = str(uuid.uuid4())
 
@@ -66,7 +67,7 @@ class ChatStreamManager():
             await self.handle_chat(json.loads(msg.data))
 
     async def handleWriting(self):
-        while self._run:
+        while not self._stopwriting:
             msg = await self._write_queue.get()
             await self._ws.send_str(msg)
 
@@ -141,12 +142,21 @@ class ChatStreamManager():
     async def stop(self, error=None):
         self._stop.set()
         self._run = False
-        await self._ws.close()
+        if self._read_thread is not None:
+            self._read_thread.join()
         if self._read_task is not None:
             self._read_task.cancel()
             await self._read_task
-        if self._read_thread is not None:
-            self._read_thread.join()
+        self._stopwriting = True
+        for i in range(10):
+            if not self._write_queue.empty():
+                await asyncio.sleep(200)
+            else:
+                break
+        if self._write_task:
+            self._write_task.cancel()
+            await self._write_task
+        await self._ws.close()
 
     async def closed(self):
         await self._stop.wait()
