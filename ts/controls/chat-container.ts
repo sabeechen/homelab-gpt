@@ -10,15 +10,20 @@ export class ChatContainer extends LitElement {
     :host {
         display: block;
         max-width: 1200px;
-        margin: 0 auto;
-        width: calc(100% - 40px);
+        margin: 10px 5px;
+        width: calc(100% - 10px);
         justify-content: center;
         display: flex;
       }
 
       @media (min-width: 769px) { :host { max-width: 1200px; margin: 0 auto;  padding: 20px;} }
 
-      @media (max-width: 768px) { :host { width: calc(100% - 40px); padding: 10px;} }
+      @media (max-width: 768px) {
+        :host {
+          width: calc(100% - 10px);
+          padding: 5px 5px;
+          margin: 0px;}
+        }
   `;
 
   override render() {

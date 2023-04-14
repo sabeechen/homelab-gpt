@@ -7,9 +7,13 @@ export const hljs = css`
       white-space: pre;
     }
 
+    .message * pre {
+      overflow: auto
+    }
+
     pre code.hljs {
       display: block;
-      overflow-x: auto;
+      overflow-x: scroll;
       padding: 1em;
     }
 

@@ -53,11 +53,13 @@ export class ChatMessage extends LitElement {
       .user {
         max-width: 60px;
         min-width: 60px;
+        margin: 10px 2px 0px 0px;
       }
     }
     .message {
       flex-grow: 1;
       white-space: pre-wrap;
+      overflow: auto;
     }
 
     .message-editing {

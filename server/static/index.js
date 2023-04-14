@@ -165,15 +165,20 @@ PERFORMANCE OF THIS SOFTWARE.
     :host {
         display: block;
         max-width: 1200px;
-        margin: 0 auto;
-        width: calc(100% - 40px);
+        margin: 10px 5px;
+        width: calc(100% - 10px);
         justify-content: center;
         display: flex;
       }
 
       @media (min-width: 769px) { :host { max-width: 1200px; margin: 0 auto;  padding: 20px;} }
 
-      @media (max-width: 768px) { :host { width: calc(100% - 40px); padding: 10px;} }
+      @media (max-width: 768px) {
+        :host {
+          width: calc(100% - 10px);
+          padding: 5px 5px;
+          margin: 0px;}
+        }
   `,Ee=ue([se("chat-container")],Ee);let Se=class extends ae{constructor(){super(...arguments),this.label="",this.value=!1}render(){return U`
       <div class="dark-checkbox" @click="${()=>this.value=!this.value}">
         <input type="checkbox" ?checked=${this.value} />
@@ -393,9 +398,13 @@ class ht{constructor(e,t,n,a){var i;if(this.subscribe=!1,this.provided=!1,this.v
       white-space: pre;
     }
 
+    .message * pre {
+      overflow: auto
+    }
+
     pre code.hljs {
       display: block;
-      overflow-x: auto;
+      overflow-x: scroll;
       padding: 1em;
     }
 
@@ -556,11 +565,13 @@ class ht{constructor(e,t,n,a){var i;if(this.subscribe=!1,this.provided=!1,this.v
       .user {
         max-width: 60px;
         min-width: 60px;
+        margin: 10px 2px 0px 0px;
       }
     }
     .message {
       flex-grow: 1;
       white-space: pre-wrap;
+      overflow: auto;
     }
 
     .message-editing {
