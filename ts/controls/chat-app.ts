@@ -98,13 +98,25 @@ export class ChatApp extends LitElement {
         display: flex;
       }
 
-      .button-icon {
-        margin-right: 5px;
-      }
-
       .api-key {
         width: 100%;
         margin: 20px;
+      }
+
+      chat-button {
+        min-width: 160px;
+      }
+
+      chat-button * chat-icon, chat-button * .loader, chat-button.little-button .loader {
+        margin-right: 5px;
+      }
+
+      chat-button.little-button {
+        min-width: initial;
+      }
+
+      chat-button.little-button * chat-icon, chat-button.little-button chat-icon, chat-button.little-button * .loader, chat-button.little-button .loader {
+        margin-right: 0px;
       }
   `];
 
@@ -121,16 +133,16 @@ export class ChatApp extends LitElement {
   showOptions: boolean
 
   @state({})
-  maxTokens = JSON.parse(localStorage.getItem('maxTokens') || "1000")as number;
+  maxTokens: number;
 
   @state({})
-  determinism = JSON.parse(localStorage.getItem('determinism') || "50") as number;
+  determinism: number;
 
   @state({})
-  model = JSON.parse(localStorage.getItem('model') || JSON.stringify(this.app.getCurrentModel())) as Model;
+  model: Model;
 
   @state({})
-  apiKey = localStorage.getItem('apiKey') || "";
+  apiKey: string;
 
   public helper() {
     ChatMessage.properties;
@@ -222,29 +234,40 @@ export class ChatApp extends LitElement {
         </div>
       </chat-container>
       <chat-container>
-        <div class="wide">
+        <div class="flex-horizontal wide">
           <chat-text-area
-            class="chat-input"
+            class="chat-input flex-fill"
             rows="4"
             placeholder="Start the conversation here"
             id="chat-input"
             @submit=${this._chat}
           ></chat-text-area>
+          ${this.app.busy ?
+          html`
+          <chat-button id="cancel" class="mobile-only little-button" @click=${this._cancel}>
+            <div class="loader"></div>
+          </chat-button>` :
+          html`
+          <chat-button class="mobile-only little-button" id="submit" @click=${this._chat}>
+            <div class="flex-horizontal flex-center">
+              <chat-icon style="transform: scaleX(-1);" .path=${mdiChatOutline}></chat-icon>
+            </div>
+          </chat-button>`}
         </div>
       </chat-container>
       <chat-container>
-        <div class="buttons">
+        <div class="flex-horizontal flex-center wide">
           ${this.app.busy ?
           html`
           <chat-button id="cancel" class="hidden button" @click=${this._cancel}>
             <div class="loader"></div>
-            <span> Cancel </span>
+            <span>Cancel</span>
           </chat-button>` :
           html`
           <chat-button id="submit" @click=${this._chat}>
             <div class="flex-horizontal flex-center">
               <chat-icon style="transform: scaleX(-1);" class="button-icon" .path=${mdiChatOutline}></chat-icon>
-              <span>Submit </span>
+              <span>Submit</span>
             </div>
           </chat-button>`}
           <chat-button id="clear_chat" ?danger=${true} @click=${this._clear}>

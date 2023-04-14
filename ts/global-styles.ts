@@ -32,4 +32,16 @@ export const defaultCSS = css`
   * {
     box-sizing: border-box;
   }
+
+  @media only screen and (max-width: 767px) {
+    .mobile-only {
+      display: block;
+    }
+  }
+
+  @media only screen and (min-width: 768px) {
+    .mobile-only {
+      display: none;
+    }
+  }
   `;

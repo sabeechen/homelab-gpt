@@ -18,7 +18,6 @@ export class ChatButton extends LitElement {
       display: flex;
       justify-content: center;
       flex-direction: row;
-      width: 120px;
       margin: 0px 10px;
       height: 22px;
       transition-property: background;
