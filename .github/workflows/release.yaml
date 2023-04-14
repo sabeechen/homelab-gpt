@@ -32,7 +32,6 @@ jobs:
             type=schedule,pattern={{date 'YYYYMMDD'}}
             type=semver,pattern={{version}}
             type=sha
-        with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       - name: Set up QEMU
