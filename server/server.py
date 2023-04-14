@@ -208,7 +208,7 @@ class Server():
         ])
         runner = web.AppRunner(app)
         await runner.setup()
-        site = web.TCPSite(runner, "0.0.0.0", 8080)
+        site = web.TCPSite(runner, "0.0.0.0", int(os.environ.get("PORT", 80)))
         await site.start()
         print("Server Started")
 
