@@ -17,8 +17,10 @@ GPT4_32K = 'gpt-4-32k'
 @dataclass
 class OpenAiModel:
     name: str
+    label: str
     token_cost_completion: float
     token_cost_prompt: float
+    max_tokens: int
     encoding: tiktoken.Encoding
 
     def tokenCount(self, content: Union[str, Dict[str, str],  List[Dict[str, str]]]) -> int:
@@ -38,10 +40,10 @@ class OpenAiModel:
 
 
 MODELS: Dict[str, OpenAiModel] = {
-    GPT4: OpenAiModel(GPT4, 0.06 / 1000, 0.03 / 1000, tiktoken.encoding_for_model(GPT4)),
-    GPT3: OpenAiModel(GPT3, 0.002 / 1000, 0.002 / 1000, tiktoken.encoding_for_model(GPT3)),
-    GPT4_32K: OpenAiModel(GPT4_32K, 0.002 / 1000, 0.002 /
-                          1000, tiktoken.encoding_for_model(GPT4_32K))
+    GPT4: OpenAiModel(GPT4, "GPT3 💲", 0.06 / 1000, 0.03 / 1000, 1024 * 8 - 1, tiktoken.encoding_for_model(GPT4)),
+    GPT3: OpenAiModel(GPT3, "GPT4 💵", 0.002 / 1000, 0.002 / 1000, 1024 * 4 - 1, tiktoken.encoding_for_model(GPT3)),
+    GPT4_32K: OpenAiModel(GPT4_32K, "GPT4-32K 💰", 0.002 / 1000, 0.002 /
+                          1000, 1024 * 32 - 1, tiktoken.encoding_for_model(GPT4_32K))
 }
 
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
@@ -133,7 +135,12 @@ class ChatStreamManager():
         self._read_thread.start()
 
     def request_chat(self, message_start: str, model_data: OpenAiModel, loop, api_key: str, **kwargs):
-        prompt_tokens = model_data.tokenCount(kwargs["messages"])
+        prompt_tokens = model_data.tokenCount(
+            json.dumps(kwargs["messages"], separators=(',', ':')))
+
+        max_allowed = model_data.max_tokens - prompt_tokens
+        if (kwargs['max_tokens'] > max_allowed):
+            kwargs['max_tokens'] = max_allowed
         completion_tokens = 0
         if (len(message_start) > 0):
             message_start += " "
