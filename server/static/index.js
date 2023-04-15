@@ -576,6 +576,15 @@ class ht{constructor(e,t,n,a){var i;if(this.subscribe=!1,this.provided=!1,this.v
       overflow: auto;
     }
 
+    .message * ol {
+      white-space: initial;
+    }
+
+    .message * ol li {
+      white-space: pre-wrap;
+;
+    }
+
     .message-editing {
       white-space: revert;
       padding: 10px;

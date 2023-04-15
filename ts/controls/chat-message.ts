@@ -62,6 +62,15 @@ export class ChatMessage extends LitElement {
       overflow: auto;
     }
 
+    .message * ol {
+      white-space: initial;
+    }
+
+    .message * ol li {
+      white-space: pre-wrap;
+;
+    }
+
     .message-editing {
       white-space: revert;
       padding: 10px;
