@@ -538,7 +538,7 @@ class ht{constructor(e,t,n,a){var i;if(this.subscribe=!1,this.provided=!1,this.v
           `:U`
           <div id="message-rendered" class="${this._isHuman()?"message human":"message"}"><div class="action-container">
               <chat-icon class="action-icon action-half" .path=${"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"} @click=${this._copy}></chat-icon>
-              ${this._isHuman()?U`<chat-icon class="action-icon action-half" .path=${"M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"} @click=${this._replay}></chat-icon>`:U``}
+              ${this._isHuman()?U`<chat-icon class="action-icon action-half" .path=${"M12,5V1L7,6L12,11V7A6,6 0 0,1 18,13A6,6 0 0,1 12,19A6,6 0 0,1 6,13H4A8,8 0 0,0 12,21A8,8 0 0,0 20,13A8,8 0 0,0 12,5Z"} @click=${this._replay}></chat-icon>`:U`<div></div>`}
               <chat-icon class="action-icon action-half" .path=${"M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"} @click=${this._edit}></chat-icon>
               <chat-icon class="action-icon action-half" .path=${"M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z"} @click=${this._delete}></chat-icon>
               ${"length"==this.message.finish_reason?U`<chat-icon class="action-icon" .path=${"M8.5,8.64L13.77,12L8.5,15.36V8.64M6.5,5V19L17.5,12"} @click=${this._continue}></chat-icon>`:U``}

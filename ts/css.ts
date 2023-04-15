@@ -5,6 +5,7 @@ export const hljs = css`
       background: #23241f;
       color: #f8f8f2;
       white-space: pre;
+      font-size: 13px;
     }
 
     .message * pre {

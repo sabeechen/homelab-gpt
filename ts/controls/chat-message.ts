@@ -193,7 +193,7 @@ export class ChatMessage extends LitElement {
           ` : html`
           <div id="message-rendered" class="${this._isHuman() ? "message human" : "message"}"><div class="action-container">
               <chat-icon class="action-icon action-half" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
-              ${this._isHuman() ? html`<chat-icon class="action-icon action-half" .path=${mdiReplay} @click=${this._replay}></chat-icon>` : html``}
+              ${this._isHuman() ? html`<chat-icon class="action-icon action-half" .path=${mdiReplay} @click=${this._replay}></chat-icon>` : html`<div></div>`}
               <chat-icon class="action-icon action-half" .path=${mdiPencil} @click=${this._edit}></chat-icon>
               <chat-icon class="action-icon action-half" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
               ${this.message.finish_reason == "length" ?
