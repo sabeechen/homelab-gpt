@@ -397,6 +397,7 @@ class ht{constructor(e,t,n,a){var i;if(this.subscribe=!1,this.provided=!1,this.v
       background: #23241f;
       color: #f8f8f2;
       white-space: pre;
+      font-size: 13px;
     }
 
     .message * pre {
