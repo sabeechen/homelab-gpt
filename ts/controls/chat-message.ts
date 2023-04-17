@@ -149,6 +149,7 @@ export class ChatMessage extends LitElement {
       border-style: solid;
       border-color: var(--grey);
       margin-left: 4px;
+      margin-bottom: 5px;
       padding: 2px;
     }
   `];
