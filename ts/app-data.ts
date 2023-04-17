@@ -72,8 +72,8 @@ export class Chat {
   }
 
   private _clamp(value: string) {
-    if (value.length > 200) {
-      return value.substring(0, 200);
+    if (value.length > 50) {
+      return value.substring(0, 50);
     } else {
       return value;
     }

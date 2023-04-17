@@ -121,9 +121,11 @@ export class ChatApp extends LitElement {
 
       chat-drop-down {
         margin: 5px;
+        min-width: 200px;
       }
       .compact-container {
         padding: 10px 20px;
+        padding-top: 0px;
       }
       .header-floater {
         position: absolute;
@@ -138,6 +140,14 @@ export class ChatApp extends LitElement {
 
         header {
           display: flex;
+        }
+
+        chat-button {
+          min-width: 0px;
+        }
+
+        div.button-content {
+          padding: 5px 10px;
         }
       }
 
@@ -227,14 +237,14 @@ export class ChatApp extends LitElement {
           <chat-button @click=${this._saveDraft} style="height: 2.5em;">
             <div class="button-content flex-horizontal flex-center">
               <chat-icon class="button-icon" .path=${mdiContentSave}></chat-icon>
-              <span>Save</span>
+              <span class="desktop-only">Save</span>
             </div>
           </chat-button>
           ` : html``}
           <chat-button @click=${this._newChat} style="height: 2.5em;">
             <div class="button-content flex-horizontal flex-center">
               <chat-icon class="button-icon" .path=${mdiPlus}></chat-icon>
-              <span>New Chat</span>
+              <span class="desktop-only">New</span>
             </div>
           </chat-button>
         </div>
@@ -242,14 +252,14 @@ export class ChatApp extends LitElement {
       ` : html``}
       <chat-container class="${!this.showOptions ? 'compact-container' : 'compact-container hidden'}">
         <div class="flex-horizontal wide flex-center">
-          <chat-button class="little-button" @click=${this._toggleOptions}>
-            <div class="button-content flex-horizontal flex-center">
-              <chat-icon class="button-icon" .path=${this.showOptions ? mdiCogOff : mdiCog}></chat-icon>
-            </div>
-          </chat-button>
           <div class="truncate">
             ${this._settingSummary()}
           </div>
+          <chat-button class="little-button" @click=${this._toggleOptions}>
+            <div class="button-content flex-horizontal flex-center" style="padding: 3px;">
+              <chat-icon class="button-icon" .path=${this.showOptions ? mdiCogOff : mdiCog}></chat-icon>
+            </div>
+          </chat-button>
         </div>
       </chat-container>
       <chat-container class="${this.showOptions ? '' : 'hidden'}">
