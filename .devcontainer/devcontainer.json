@@ -4,7 +4,6 @@
   "service": "vscode",
   "runServices": ["vscode"],
   "shutdownAction": "stopCompose",
-  "postCreateCommand": ["tsc -p tsconfig.json --watch"],
   "workspaceFolder": "/workspace",
   "customizations": {
     "vscode": {
