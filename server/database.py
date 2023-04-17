@@ -27,7 +27,7 @@ class SQLiteDB:
                     create_query = create_query.rstrip(',')
                     create_query += ")"
                 async with conn.execute(create_query) as c:
-                    pass
+                    pass    
                 # Determine if any columns need to be added
                 if len(columns) > 0:
                     for missing_field_name in set([k.name for k in keys]).difference(columns):

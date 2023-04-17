@@ -119,6 +119,7 @@ export class AppData {
   abortController: AbortController|undefined = undefined;
   streamWebSocket: Websocket|undefined = undefined;
   publishCallback: () => void|undefined = undefined;
+  initialized = false;
 
   constructor() {
   }
@@ -517,7 +518,7 @@ export class AppData {
         }
       }
     }
-
+    this.initialized = true;
     this.publish();
   }
 
