@@ -1,7 +1,7 @@
 import {LitElement, html, css} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {repeat} from 'lit/directives/repeat.js';
-import { AppData, Chat, Message, Model } from '../app-data.js';
+import { AppData, Chat, Message } from '../app-data.js';
 import {appContext} from '../app-context.js'
 import {provide} from '@lit-labs/context';
 import { ChatContainer } from './chat-container.js';
@@ -14,7 +14,7 @@ import { ChatRadio } from './chat-radio.js';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultCSS } from "../global-styles"
 import { ChatIcon } from './chat-icon.js';
-import { mdiChatOutline, mdiCog, mdiCogOff, mdiDatabaseExportOutline, mdiNuke, mdiDatabaseImportOutline, mdiPlus, mdiTrashCanOutline, mdiContentSave } from '@mdi/js';
+import { mdiChatOutline, mdiCog, mdiCogOff, mdiDatabaseExportOutline, mdiNuke, mdiDatabaseImportOutline, mdiTrashCanOutline, mdiContentSave, mdiChatPlusOutline } from '@mdi/js';
 import { ChatBar } from './chat-bar.js';
 import { ChatDropDown } from './chat-drop-down.js';
 import { Util } from '../util.js';
@@ -175,6 +175,21 @@ export class ChatApp extends LitElement {
 
   @query('#system-input')
   _systemInput: ChatTextArea;
+  
+  @query('#prompt-input')
+  _promptInput: ChatTextArea;
+
+  @query('#api-key-input')
+  _apiKeyInput: ChatTextArea;
+
+  @query('#model-radio')
+  _modelRadio: ChatRadio;
+
+  @query('#determinism')
+  _determinism: ChatSlider;
+
+  @query('#max-tokens')
+  _maxTokens: ChatSlider;
 
   @query("#export-upload")
   _exportUpload: HTMLInputElement;
@@ -187,18 +202,6 @@ export class ChatApp extends LitElement {
 
   @state({})
   showOptions: boolean
-
-  @state({})
-  maxTokens: number;
-
-  @state({})
-  determinism: number;
-
-  @state({})
-  model: Model;
-
-  @state({})
-  apiKey: string;
 
   public helper() {
     ChatMessage.properties;
@@ -247,7 +250,7 @@ export class ChatApp extends LitElement {
           ` : html``}
           <chat-button @click=${this._newChat} style="height: 2.5em;">
             <div class="button-content flex-horizontal flex-center">
-              <chat-icon class="button-icon" .path=${mdiPlus}></chat-icon>
+              <chat-icon class="button-icon" .path=${mdiChatPlusOutline}></chat-icon>
               <span class="desktop-only">New</span>
             </div>
           </chat-button>
@@ -266,30 +269,28 @@ export class ChatApp extends LitElement {
           </chat-button>
         </div>
       </chat-container>
-      <chat-container class="${this.showOptions ? '' : 'hidden'}">
+      <chat-container class="${this.showOptions ? '' : 'hidden'}" @input=${this._syncSettings}>
         <div class="flex-vertical flex-center">
         <div class="flex-horizontal flex-center flex-wrap">
-            <chat-radio id="model-select" .options=${this.app.models} .value=${this.model} @input=${this._updateSelectedModel}></chat-radio>
+            <chat-radio id="model-radio" .options=${this.app.models} .value=${this.app.getCurrentModel()}></chat-radio>
             <chat-slider
               label="Determinism {}%"
               id="determinism"
               min="0"
               max="100"
               step="1"
-              .value=${this.determinism}
-              @input=${this._updateDeterminism}
+              .value=${this.app.currentChat.settings.determinism}
             ></chat-slider>
             <chat-slider
               label="Max Tokens {}"
               id="max-tokens"
               min="25"
-              max=${this.app.getCurrentModel()?.maxTokens}
+              .max=${this.app.getCurrentModel().maxTokens}
               step="25"
-              .value=${this.maxTokens}
-              @input=${this._updateMaxTokens}
+              .value=${this.app.currentChat.settings.max_tokens}
             ></chat-slider>
           </div>
-          <chat-text-area class="api-key" placeholder="OpenAI API Key.  Leave blank to use this server's key." .value=${this.apiKey} @input=${this._updateApiKey}></chat-text-area>
+          <chat-text-area id="api-key-input" class="api-key" placeholder="OpenAI API Key.  Leave blank to use this server's key." .value=${this.app.currentChat.settings.api_key}></chat-text-area>
           <div class="wide">
           <h3>Prompt</h3>
           <div class="flex-horizontal">
@@ -298,6 +299,7 @@ export class ChatApp extends LitElement {
               id="system-input"
               class="flex-fill"
               rows="2"
+              .value=${this.app.currentChat.settings.prompt}
               @input=${this._syncSettings}
             ></chat-text-area>
           </div>
@@ -406,11 +408,6 @@ export class ChatApp extends LitElement {
     await this.updateComplete;
     this._chatInput.doFocus();
     this.app.bindToUpdates(() => this.updateFromApp());
-    this.determinism = this.app.currentChat.settings.determinism;
-    this.maxTokens = this.app.currentChat.settings.max_tokens;
-    this.model = this.app.getCurrentModel();
-    this.apiKey = this.app.currentChat.settings.api_key;
-    this._systemInput.value = this.app.currentChat.settings.prompt;
   }
 
   private async _userChanged() {
@@ -467,8 +464,7 @@ export class ChatApp extends LitElement {
     this._addChatRequest();
     try {
       this.requestUpdate();
-      const modelName = (this.model as Model).value
-      await this.app.chat(this._systemInput.value, modelName, this.determinism, this.maxTokens, this.apiKey);
+      await this.app.chat();
     } finally {
       this.requestUpdate();
     }
@@ -497,37 +493,17 @@ export class ChatApp extends LitElement {
     this.requestUpdate();
   }
 
-  private _updateSelectedModel(e: Event) {
-    const model = (e.target as ChatRadio).value as Model
-    this.model = model;
-    this._syncSettings();
-    if (this.maxTokens > this.app.getCurrentModel().maxTokens) {
-      this.maxTokens = this.app.getCurrentModel().maxTokens;
-    }
-    this.requestUpdate();
-  }
-
-  private _updateDeterminism(e: Event) {
-    this.determinism = (e.target as ChatSlider).value;
-    this._syncSettings();
-  }
-
-  private _updateMaxTokens(e: Event) {
-    this.maxTokens = (e.target as ChatSlider).value;
-    this._syncSettings();
-  }
-
-  private _updateApiKey(e: Event) {
-    this.apiKey = (e.target as ChatTextArea).value;
-    this._syncSettings();
-  }
-
   private _syncSettings() {
-    this.app.currentChat.settings.api_key = this.apiKey;
-    this.app.currentChat.settings.determinism = this.determinism;
-    this.app.currentChat.settings.max_tokens = this.maxTokens;
-    this.app.currentChat.settings.model = this.model.value;
+    this.app.currentChat.settings.api_key = this._apiKeyInput.value;
+    this.app.currentChat.settings.determinism = this._determinism.value;
+    this.app.currentChat.settings.max_tokens = this._maxTokens.value;
+    this.app.currentChat.settings.model = this._modelRadio.value.value;
     this.app.currentChat.settings.prompt = this._systemInput.value;
+    this._maxTokens.max = this.app.getCurrentModel().maxTokens;
+    if(this.app.currentChat.settings.max_tokens > this.app.getCurrentModel().maxTokens) {
+      this.app.currentChat.settings.max_tokens = this.app.getCurrentModel().maxTokens;
+      this._maxTokens.value = this.app.getCurrentModel().maxTokens;
+    }
     this.app.dirty();
   }
 
@@ -575,7 +551,7 @@ export class ChatApp extends LitElement {
 
   private async _messageContinue(e: CustomEvent) {
     const message = e.detail as Message;
-    await this.app.continue(message, this._systemInput.value, this.model.value, this.determinism, this.maxTokens, this.apiKey);
+    await this.app.continue(message);
     this.requestUpdate();
   }
 

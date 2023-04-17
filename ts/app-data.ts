@@ -14,9 +14,9 @@ export class Message {
   start_edited?: boolean;
 }
 export class Model {
-  label: string
-  value: string
-  maxTokens: number
+  label = "Default Model"
+  value = "Default"
+  maxTokens: number = 1024 * 32 - 1
 }
 
 export class  Settings {
@@ -45,7 +45,7 @@ export class Chat {
 
   temporary_name?: string = ""
   total_spending? = 0
-  
+
   @Exclude()
   temporary_cost = 0
 
@@ -60,7 +60,7 @@ export class Chat {
 
     for (const message of this.messages) {
       if (message.message) {
-        return this._clamp(message.message);
+        return this._clamp(message.message) + "...";
       }
     }
 
@@ -101,7 +101,7 @@ export class LocalSaveInfo {
 
   @Type(() => Chat)
   chat?: Chat;
-  
+
   version?: number;
 }
 
@@ -312,7 +312,7 @@ export class AppData {
     }
   }
 
-  public async continue(cont: Message, prompt: string, model: string, determinism: number, maxTokens: number, apiKey: string) {
+  public async continue(cont: Message) {
     if (!this.currentChat) {
       return
     }
@@ -323,10 +323,10 @@ export class AppData {
         break;
       }
     }
-    await this.chat(prompt, model, determinism, maxTokens, apiKey, toSend, cont);
+    await this.chat(cont, toSend);
   }
 
-  public async chat(prompt: string, model: string, determinism: number, maxTokens: number, api_key: string, messages: Message[]=null, message: Message = null) {
+  public async chat(message: Message = null, messages: Message[]=null) {
     await this.cancel();
     this.busy = true;
     const app = this;
@@ -350,13 +350,13 @@ export class AppData {
     }
     const request = {
       messages: messages,
-      model: model,
-      temperature: ((100 - determinism) / 100) * 2,
-      prompt: prompt,
+      model: this.currentChat.settings.model,
+      temperature: ((100 - this.currentChat.settings.determinism) / 100) * 2,
+      prompt: this.currentChat.settings.prompt,
       id: message.id,
-      max_tokens: maxTokens,
+      max_tokens: this.currentChat.settings.max_tokens,
       continuation: continuation,
-      api_key: api_key,
+      api_key: this.currentChat.settings.api_key,
     };
     const index = chat.messages.indexOf(message);
 
@@ -416,7 +416,11 @@ export class AppData {
         }
       }
     }
-    return this.models[1];
+    if (this.models.length > 1){
+      return this.models[1];
+    } else {
+      return new Model();
+    }
   }
 
   public toJSON() {
