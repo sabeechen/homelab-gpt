@@ -18,6 +18,7 @@ import { ChatBar } from './chat-bar';
  * @fires delete
  * @fires continue
  * @fires insert
+ * @fires edited
  * @attr message
  */
 @customElement('chat-message')
@@ -68,7 +69,17 @@ export class ChatMessage extends LitElement {
 
     .message * ol li {
       white-space: pre-wrap;
-;
+    }
+
+    pre code:not(.hljs) {
+      /* styles for code without the hljs class, which means the language wasn't specified */
+      background: #23241f;
+      color: #f8f8f2;
+      white-space: pre;
+      font-size: 13px;
+      display: block;
+      overflow-x: scroll;
+      padding: 1em;
     }
 
     .message-editing {
@@ -180,7 +191,7 @@ export class ChatMessage extends LitElement {
 
     // Lit makes us return a single element, but adding nodes to a different part of the DOM removes them from the current parent.
     // So first copy the child list then add them to a new div.
-    const children = Array.from(new DOMParser().parseFromString(marked.parse(this.message.message), "text/html").body.children);
+    const children = Array.from(new DOMParser().parseFromString(marked.parse(this.message.message.trim()), "text/html").body.children);
     const messageHTML = document.createElement("div") as HTMLDivElement;
     for (const child of children) {
       messageHTML.appendChild(child);
@@ -207,10 +218,7 @@ export class ChatMessage extends LitElement {
               <chat-icon class="action-icon action-half" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
               ${this.message.finish_reason == "length" ?
               html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
-            </div>${messageHTML}
-          </div>
-          `}
-        </div>
+            </div>${messageHTML}</div>`}</div>
         ${this.message.error ? html`
           <div class="flex-horizontal flex-center error-container">
             <chat-icon class="warn-icon" .path=${mdiAlertOutline} .color=${css`#f93333`}></chat-icon><span class="error-message">${this.message.error}</span>
@@ -279,10 +287,12 @@ export class ChatMessage extends LitElement {
   private _saveEdit() {
     this.message.message = this._editTextArea.value;
     this.editing = false;
+    this._dispatchEvent("edited");
   }
 
   private _cancelEdit() {
     this.editing = false;
+    this._dispatchEvent("edited");
   }
 
   private _delete() {

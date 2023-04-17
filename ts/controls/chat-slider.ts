@@ -113,7 +113,7 @@ export class ChatSlider extends LitElement {
   override render() {
     return html`
       <div class="slider-outter">
-          <span>${this.label.replace("{}", this.value.toString())}</span> </span>
+          <span>${this.label.replace("{}", this.value?.toString())}</span> </span>
           <div class="slider-container">
             <input
               type="range"

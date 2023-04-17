@@ -7,3 +7,4 @@ server/__pycache__/
 server/static/build/
 .env
 server/**/*.js.map
+data.sqlite

@@ -37,7 +37,7 @@ export class ChatTextArea extends LitElement {
 
     /* Apply placeholder styles */
     textarea::placeholder {
-      color: #888;
+      color: var(--placeholder);
     }`]
 
   /**

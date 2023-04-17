@@ -66,7 +66,7 @@ export class ChatRadio extends LitElement {
               type="radio"
               name="option"
               id="${option.value}"
-              ?checked="${option.value == this.value.value}"
+              ?checked="${option.value == this.value?.value}"
               @input=${this._inputChanged}
             />
             <span>${option.label}</span>

@@ -10,7 +10,6 @@ export class ChatButton extends LitElement {
     .button {
       background-color: var(--blue);
       display: flex;
-      padding: 10px 20px;
       font-size: 16px;
       text-decoration: none;
       border-radius: 4px;
@@ -18,8 +17,7 @@ export class ChatButton extends LitElement {
       display: flex;
       justify-content: center;
       flex-direction: row;
-      margin: 0px 10px;
-      height: 22px;
+      height: 100%;
       transition-property: background;
       transition-duration: 0.2s;
       transition-timing-function: ease;

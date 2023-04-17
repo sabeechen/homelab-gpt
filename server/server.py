@@ -8,6 +8,10 @@ import uuid
 import tiktoken
 from typing import Union, Dict, List
 from dataclasses import dataclass
+from .database import SQLiteDB
+from .database_classes import User as DBUSer, Chat as DBChat
+from .dataclass_encoder import CustomJSONTransformer
+from uuid import uuid4
 
 GPT3 = 'gpt-3.5-turbo'
 GPT4 = 'gpt-4'
@@ -16,11 +20,11 @@ GPT4_32K = 'gpt-4-32k'
 
 @dataclass
 class OpenAiModel:
-    name: str
+    value: str
     label: str
     token_cost_completion: float
     token_cost_prompt: float
-    max_tokens: int
+    maxTokens: int
     encoding: tiktoken.Encoding
 
     def tokenCount(self, content: Union[str, Dict[str, str],  List[Dict[str, str]]]) -> int:
@@ -40,9 +44,9 @@ class OpenAiModel:
 
 
 MODELS: Dict[str, OpenAiModel] = {
-    GPT4: OpenAiModel(GPT4, "GPT3 💲", 0.06 / 1000, 0.03 / 1000, 1024 * 8 - 1, tiktoken.encoding_for_model(GPT4)),
-    GPT3: OpenAiModel(GPT3, "GPT4 💵", 0.002 / 1000, 0.002 / 1000, 1024 * 4 - 1, tiktoken.encoding_for_model(GPT3)),
-    GPT4_32K: OpenAiModel(GPT4_32K, "GPT4-32K 💰", 0.002 / 1000, 0.002 /
+    GPT3: OpenAiModel(GPT3, "GPT3💲", 0.002 / 1000, 0.002 / 1000, 1024 * 4 - 1, tiktoken.encoding_for_model(GPT3)),
+    GPT4: OpenAiModel(GPT4, "GPT4💵", 0.06 / 1000, 0.03 / 1000, 1024 * 8 - 1, tiktoken.encoding_for_model(GPT4)),
+    GPT4_32K: OpenAiModel(GPT4_32K, "GPT4-32K💰", 0.012 / 1000, 0.06 /
                           1000, 1024 * 32 - 1, tiktoken.encoding_for_model(GPT4_32K))
 }
 
@@ -138,7 +142,7 @@ class ChatStreamManager():
         prompt_tokens = model_data.tokenCount(
             json.dumps(kwargs["messages"], separators=(',', ':')))
 
-        max_allowed = model_data.max_tokens - prompt_tokens
+        max_allowed = model_data.maxTokens - prompt_tokens
         if (kwargs['max_tokens'] > max_allowed):
             kwargs['max_tokens'] = max_allowed
         completion_tokens = 0
@@ -203,14 +207,21 @@ class ChatStreamManager():
 # An aiohttp server class that serves the files in the "static" directory
 # and handles the chat API endpoint
 class Server():
-    def __init__(self):
-        pass
+    def __init__(self, database: SQLiteDB):
+        self.db = database
+        self.transformer = CustomJSONTransformer()
 
     async def start(self):
         app = web.Application()
         app.add_routes([
             web.static('/static', self.get_path('static'), show_index=False),
             web.get('/', self.index),
+            web.get('/api/initialize', self.initialize),
+            web.post('/api/chats', self.get_chats),
+            web.post('/api/chat', self.save_chat),
+            web.get('/api/chat/{id}', self.query_chat),
+            web.get('/api/user/add/{name}', self.add_user),
+            web.delete('/api/chat/{id}', self.delete_chat),
             web.get('/api/ws/chat', self.websocket_stream_handler),
         ])
         runner = web.AppRunner(app)
@@ -225,6 +236,56 @@ class Server():
 
     async def index(self, req: web.Request):
         return web.FileResponse(self.get_path('static/index.html'))
+
+    async def initialize(self, req: web.Request):
+        data = {
+            "models": list(MODELS.values()),
+            "users": await self.db.get_all(DBUSer)
+        }
+        return web.json_response(data, dumps=self.transformer.to_json)
+
+    async def get_chats(self, req: web.Request):
+        query = await req.json()
+        data = {
+            "chats": await self.db.find(DBChat, fields=DBChat.REQUIRED, user_id=query['user_id'])
+        }
+        return web.json_response(data, dumps=self.transformer.to_json)
+
+    async def save_chat(self, req: web.Request):
+        info = await req.json()
+        info['data'] = json.dumps(info["messages"])
+        info['settings'] = json.dumps(info["settings"])
+        del info['messages']
+        del info['loaded']
+        chat = DBChat(**info)
+        from_db = await self.db.find_by_id(DBChat, chat.id)
+        if from_db:
+            await self.db.update(chat)
+        else:
+            await self.db.insert(chat)
+        return web.json_response({})
+
+    async def query_chat(self, req: web.Request):
+        chat = await self.db.find_by_id(DBChat, req.match_info.get("id"))
+        if not chat:
+            return web.Response(status=404)
+        as_json = self.transformer.encoder.default(chat)
+        as_json["messages"] = json.loads(as_json["data"])
+        del as_json["data"]
+        as_json['settings'] = json.loads(as_json["settings"])
+        return web.json_response(as_json)
+
+    async def add_user(self, req: web.Request):
+        name = str(req.match_info.get("name"))
+        await self.db.insert(DBUSer(id=str(uuid4()), name=name))
+        return web.Response()
+
+    async def delete_chat(self, req: web.Request):
+        chat = await self.db.find_by_id(DBChat, req.match_info.get("id"))
+        if not chat:
+            return web.json_response({})
+        await self.db.delete(chat)
+        return web.json_response({})
 
     async def websocket_stream_handler(self, req: web.Request):
         ws = web.WebSocketResponse()

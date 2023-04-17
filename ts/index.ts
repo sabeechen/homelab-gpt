@@ -1,3 +1,5 @@
+import 'es6-shim';
+import 'reflect-metadata';
 import './declarations'
 import './global-styles.ts';
 import './controls/chat-text-area';
@@ -9,4 +11,5 @@ import './controls/chat-app';
 import './controls/chat-icon';
 import './controls/chat-radio';
 import './controls/chat-bar';
+import './controls/chat-drop-down';
 import './app-data';
