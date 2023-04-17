@@ -200,7 +200,7 @@ export class ChatMessage extends LitElement {
           <div class="user">
             <chat-icon class="actor-icon" .path=${this._getUserIcon()} @click=${this._toggleRole}></chat-icon>
             ${this.message.cost_usd ? html`<div class="cost">${Util.formatCostUSD(this.message.cost_usd)}</div>` : html``}
-            ${this.message.cost_tokens_prompt ? html`<div class="cost-tokens">${(this.message.cost_tokens_completion || 0) + (this.message.cost_tokens_prompt || 0)} tokens</div>` : html``}
+            ${this.message.cost_tokens_prompt ? html`<div class="cost-tokens" title="Prompt tokens: ${this.message.cost_tokens_prompt || 0}  Completions Tokens: ${this.message.cost_tokens_completion || 0}">${(this.message.cost_tokens_completion || 0) + (this.message.cost_tokens_prompt || 0)} tokens</div>` : html``}
           </div>
           ${this.editing ? html`  
           <div class=${this.editing ? "message message-editing": "message"}><chat-text-area id="edit-text-area" class="wide" rows=6 @submit=${this._saveEdit}></chat-text-area></div>

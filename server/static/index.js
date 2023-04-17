@@ -569,7 +569,7 @@ class Ut{constructor(e,t,n,r){var a;if(this.subscribe=!1,this.provided=!1,this.v
           <div class="user">
             <chat-icon class="actor-icon" .path=${this._getUserIcon()} @click=${this._toggleRole}></chat-icon>
             ${this.message.cost_usd?Y`<div class="cost">${X_.formatCostUSD(this.message.cost_usd)}</div>`:Y``}
-            ${this.message.cost_tokens_prompt?Y`<div class="cost-tokens">${(this.message.cost_tokens_completion||0)+(this.message.cost_tokens_prompt||0)} tokens</div>`:Y``}
+            ${this.message.cost_tokens_prompt?Y`<div class="cost-tokens" title="Prompt tokens: ${this.message.cost_tokens_prompt||0}  Completions Tokens: ${this.message.cost_tokens_completion||0}">${(this.message.cost_tokens_completion||0)+(this.message.cost_tokens_prompt||0)} tokens</div>`:Y``}
           </div>
           ${this.editing?Y`  
           <div class=${this.editing?"message message-editing":"message"}><chat-text-area id="edit-text-area" class="wide" rows=6 @submit=${this._saveEdit}></chat-text-area></div>
