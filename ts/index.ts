@@ -13,3 +13,4 @@ import './controls/chat-radio';
 import './controls/chat-bar';
 import './controls/chat-drop-down';
 import './app-data';
+import './util'

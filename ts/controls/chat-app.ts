@@ -17,6 +17,7 @@ import { ChatIcon } from './chat-icon.js';
 import { mdiChatOutline, mdiCog, mdiCogOff, mdiDatabaseExportOutline, mdiNuke, mdiDatabaseImportOutline, mdiPlus, mdiTrashCanOutline, mdiContentSave } from '@mdi/js';
 import { ChatBar } from './chat-bar.js';
 import { ChatDropDown } from './chat-drop-down.js';
+import { Util } from '../util.js';
 
 @customElement('chat-app')
 export class ChatApp extends LitElement {
@@ -151,6 +152,11 @@ export class ChatApp extends LitElement {
 
       chat-button {
         margin: 0px 5px;
+      }
+
+      .cost-container {
+        font-size: 12px;
+        padding: 0px;
       }
   `];
 
@@ -315,6 +321,11 @@ export class ChatApp extends LitElement {
           `}
         </div>
       </chat-container>
+      ${this.app.currentChat.runningCost() > 0 ? html`
+      <chat-container class="compact-container flex-horizontal flex-center wide cost-container">
+        <div>Total running cost: <span class="cost">${Util.formatCostUSD(this.app.currentChat.runningCost())}</span></div>
+      </chat-container>
+      ` : html``}
       <chat-container>
         <div class="flex-horizontal wide">
           <chat-text-area

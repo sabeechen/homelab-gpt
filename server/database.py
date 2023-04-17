@@ -1,4 +1,4 @@
-from dataclasses import dataclass, fields
+from dataclasses import fields
 import aiosqlite
 import uuid
 from typing import List, Union
@@ -28,6 +28,14 @@ class SQLiteDB:
                     create_query += ")"
                 async with conn.execute(create_query) as c:
                     pass
+                # Determine if any columns need to be added
+                for missing_field_name in set([k.name for k in keys]).difference(columns):
+                    key = next(filter(lambda f: f.name ==
+                               missing_field_name, fields(dataclass)))
+                    print(f"Adding column {key.name} to table {table}")
+                    query = f"ALTER TABLE {table} ADD COLUMN {key.name} {self._sql_type(key.type)};"
+                    async with conn.execute(query) as c:
+                        pass
 
     async def get_all(self, dataclass):
         async with aiosqlite.connect(self.dbfile) as conn:

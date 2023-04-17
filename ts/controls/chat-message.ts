@@ -11,6 +11,8 @@ import  {defaultCSS} from "../global-styles"
 import { ChatTextArea } from './chat-text-area';
 import {hljs as hljsCss } from "../css"
 import { ChatBar } from './chat-bar';
+import { Util } from '../util'
+
 /**
  * A chat message shown in the chat log.
  *
@@ -87,11 +89,6 @@ export class ChatMessage extends LitElement {
       padding: 10px;
     }
 
-    .cost {
-      font-style: italic;
-      font-size: 12px;
-      color: #ff9c9c;
-    }
     .actor-icon {
       width: 40px;
       height: 40px;
@@ -201,10 +198,10 @@ export class ChatMessage extends LitElement {
         <div class="flex-horizontal">
           <div class="user">
             <chat-icon class="actor-icon" .path=${this._getUserIcon()} @click=${this._toggleRole}></chat-icon>
-            ${this.message.cost_usd ? html`<div class="cost">${this._format_cost(this.message.cost_usd)}</div>` : html``}
+            ${this.message.cost_usd ? html`<div class="cost">${Util.formatCostUSD(this.message.cost_usd)}</div>` : html``}
             ${this.message.cost_tokens_prompt ? html`<div class="cost-tokens">${(this.message.cost_tokens_completion || 0) + (this.message.cost_tokens_prompt || 0)} tokens</div>` : html``}
           </div>
-          ${this.editing ? html`
+          ${this.editing ? html`  
           <div class=${this.editing ? "message message-editing": "message"}><chat-text-area id="edit-text-area" class="wide" rows=6 @submit=${this._saveEdit}></chat-text-area></div>
           <div class="flex-vertical">
             <chat-icon class="action-icon" .path=${mdiContentSaveEdit} @click=${this._saveEdit}></chat-icon>
@@ -245,20 +242,6 @@ export class ChatMessage extends LitElement {
   private _toggleRole() {
     this.message.role = this.message.role == "user" ? "assistant" : "user";
     this.requestUpdate();
-  }
-
-  private _format_cost(amount: number) {
-    if (amount >= 1) {
-      return `$${amount.toFixed(2)}`;
-    } else {
-      return `¢${this._roundToTwoSignificantDigits(amount * 100)}`;
-    }
-  }
-
-  private _roundToTwoSignificantDigits(num: number) {
-    const magnitude = Math.floor(Math.log10(Math.abs(num)));
-    const scale = Math.pow(10, magnitude - 1);
-    return parseFloat((Math.round(num / scale) * scale).toPrecision(2));
   }
 
   private _dispatchEvent(name: string) {

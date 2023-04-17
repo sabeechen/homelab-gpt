@@ -1,6 +1,6 @@
 import {WebsocketBuilder, Websocket} from 'websocket-ts';
 import { v4 as uuidv4 } from 'uuid';
-import {plainToInstance, instanceToPlain, Type} from 'class-transformer'
+import {plainToInstance, instanceToPlain, Type, Exclude} from 'class-transformer'
 
 export class Message {
   id: string;
@@ -39,8 +39,15 @@ export class Chat {
   name = "";
   messages: Message[] = [];
   settings = new Settings();
+
+  @Exclude()
   loaded? = false;
+
   temporary_name?: string = ""
+  total_spending? = 0
+  
+  @Exclude()
+  temporary_cost = 0
 
   public label() {
     if (this.name) {
@@ -76,6 +83,15 @@ export class Chat {
     const chat = new Chat();
     chat.loaded = true;
     return chat;
+  }
+
+  public runningCost() {
+    return (this.total_spending || 0) + this.temporary_cost;
+  }
+
+  public closeCosts() {
+    this.total_spending = this.runningCost();
+    this.temporary_cost = 0;
   }
 }
 
@@ -353,6 +369,7 @@ export class AppData {
       .onClose((_i, _ev) => {
         console.log('Connection Closed');
         app.busy = false;
+        chat.closeCosts();
         app.publish();
         app.dirty();
       })
@@ -362,6 +379,7 @@ export class AppData {
         message.error = "Websocket error: " + ev;
         chat.messages[index] = message;
         app.busy = false;
+        chat.closeCosts();
         app.publish();
         app.dirty();
       })
@@ -371,6 +389,7 @@ export class AppData {
         // TODO: this should look up the message based on its id.
         chat.messages[index] = data;
         message = data;
+        chat.temporary_cost = message.cost_usd;
         app.publish();
       })
       .onRetry((_i, _ev) => {

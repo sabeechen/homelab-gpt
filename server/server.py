@@ -256,7 +256,6 @@ class Server():
         info['data'] = json.dumps(info["messages"])
         info['settings'] = json.dumps(info["settings"])
         del info['messages']
-        del info['loaded']
         chat = DBChat(**info)
         from_db = await self.db.find_by_id(DBChat, chat.id)
         if from_db:

@@ -4,6 +4,11 @@ export const defaultCSS = css`
   .hidden {
     display: none;
   }
+  .cost {
+    color: var(--cost);
+    font-style: italic;
+    font-size: 12px;
+  }
   .truncate {
     white-space: nowrap; /* Prevents text from wrapping to the next line */
     overflow: hidden; /* Hides any overflowing text beyond the div boundaries */
