@@ -331,7 +331,7 @@ export class ChatApp extends LitElement {
           ${this.app.currentChat?.loaded ? html`
           <chat-bar @click=${this._insertTop}></chat-bar>
           ${repeat(this.app.currentChat.messages, (msg) => msg.id, (msg, _index) => html`
-            <chat-message class="wide" .message=${msg} @delete=${this._messageDelete} @replay=${this._messageReplay} @continue=${this._messageContinue} @insert=${this._insertAfter} @edited=${this._triggerNeedsSave}></chat-message>
+            <chat-message class="wide" .message=${msg} @delete=${this._messageDelete} @replay=${this._messageReplay} @continue=${this._messageContinue} @insert=${this._insertAfter} @edited=${this._triggerNeedsSave} @reroll=${this._reroll}></chat-message>
           `)}` : html`
           <div class="loader"></div>
           `}
@@ -552,6 +552,12 @@ export class ChatApp extends LitElement {
   private async _messageContinue(e: CustomEvent) {
     const message = e.detail as Message;
     await this.app.continue(message);
+    this.requestUpdate();
+  }
+
+  private async _reroll(e: CustomEvent) {
+    const message = e.detail as Message;
+    await this.app.reroll(message);
     this.requestUpdate();
   }
 

@@ -3,7 +3,7 @@ import {customElement, property, state, query} from 'lit/decorators.js';
 import {consume} from '@lit-labs/context';
 import {type AppData, appContext} from '../app-context';
 import { Message } from '../app-data';
-import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPencil, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan, mdiContentSaveEdit, mdiClose } from '@mdi/js';
+import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPencil, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan, mdiContentSaveEdit, mdiClose, mdiDiceMultiple } from '@mdi/js';
 import { ChatIcon } from './chat-icon';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -210,12 +210,16 @@ export class ChatMessage extends LitElement {
           </div>
           ` : html`
           <div id="message-rendered" class="${this._isHuman() ? "message human" : "message"}"><div class="action-container">
-              <chat-icon class="action-icon action-half" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
-              ${this._isHuman() ? html`<chat-icon class="action-icon action-half" .path=${mdiReplay} @click=${this._replay}></chat-icon>` : html`<div></div>`}
-              <chat-icon class="action-icon action-half" .path=${mdiPencil} @click=${this._edit}></chat-icon>
-              <chat-icon class="action-icon action-half" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
+              <chat-icon title="Copy message text" class="action-icon action-half" .path=${mdiContentCopy} @click=${this._copy}></chat-icon>
+              ${this._isHuman() ? html`
+              <chat-icon title="Delete history up to here" class="action-icon action-half" .path=${mdiReplay} @click=${this._replay}></chat-icon>
+              ` : html`
+              <chat-icon title="Re-roll this message" class="action-icon action-half" .path=${mdiDiceMultiple} @click=${this._reroll}></chat-icon>
+              `}
+              <chat-icon title="Edit this message" class="action-icon action-half" .path=${mdiPencil} @click=${this._edit}></chat-icon>
+              <chat-icon title="Delete" class="action-icon action-half" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
               ${this.message.finish_reason == "length" ?
-              html`<chat-icon class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
+              html`<chat-icon title="Continue this message" class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
             </div>${messageHTML}</div>`}</div>
         ${this.message.error ? html`
           <div class="flex-horizontal flex-center error-container">
@@ -281,6 +285,10 @@ export class ChatMessage extends LitElement {
 
   private _delete() {
     this._dispatchEvent("delete");
+  }
+
+  private _reroll() {
+    this._dispatchEvent("reroll");
   }
 
   private _continue() {

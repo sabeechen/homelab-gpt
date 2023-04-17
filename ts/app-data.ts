@@ -326,7 +326,21 @@ export class AppData {
     await this.chat(cont, toSend);
   }
 
-  public async chat(message: Message = null, messages: Message[]=null) {
+  public async reroll(cont: Message) {
+    if (!this.currentChat) {
+      return
+    }
+    const toSend: Message[] = [];
+    for (const msg of this.currentChat.messages) {
+      if(msg == cont) {
+        break;
+      }
+      toSend.push(msg);
+    }
+    await this.chat(cont, toSend, true);
+  }
+
+  public async chat(message: Message = null, messages: Message[]=null, reroll=false) {
     await this.cancel();
     this.busy = true;
     const app = this;
@@ -345,7 +359,7 @@ export class AppData {
         id: uuidv4()
       };
       chat.messages.push(message);
-    } else {
+    } else if(!reroll) {
       continuation = message.message;
     }
     const request = {
