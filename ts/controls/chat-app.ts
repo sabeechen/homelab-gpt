@@ -305,7 +305,7 @@ export class ChatApp extends LitElement {
           <h3>Prompt</h3>
           <div class="flex-horizontal">
             <chat-text-area
-              placeholder="You can enter anything here, its instructions about what the AI should be.  The default is to be a helpfuland concise assistant."
+              placeholder="You can enter anything here, its instructions about what the AI should be.  The default is to be a helpful and concise assistant."
               id="system-input"
               class="flex-fill"
               rows="2"
