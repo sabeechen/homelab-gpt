@@ -163,7 +163,6 @@ export class AppData {
     chat.id = uuidv4();
     chat.loaded = true;
     chat.user_id = this.user.id;
-    chat.settings.api_key = this.user.api_key;
     this.chats.push(chat);
     this.openChat(chat);
   }
@@ -225,9 +224,6 @@ export class AppData {
           const newChat = new Chat();
           newChat.id = uuidv4();
           newChat.loaded = true;
-          if (this.user) {
-            newChat.settings.api_key = this.user.api_key;
-          }
           this.currentChat = newChat;
         }
         this.unsavedChat = null;
@@ -377,6 +373,11 @@ export class AppData {
       continuation: continuation,
       api_key: this.currentChat.settings.api_key,
     };
+    if (!request.api_key || request.api_key.length == 0) {
+      if (this.user && this.user.api_key && this.user.api_key.length > 0) {
+        request.api_key = this.user.api_key;
+      }
+    }
     const index = chat.messages.indexOf(message);
 
     const wsProtocol = window.location.protocol == 'https:' ? 'wss' : 'ws';

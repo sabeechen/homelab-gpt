@@ -216,6 +216,14 @@ export class ChatApp extends LitElement {
     ChatDropDown.properties;
   }
 
+  public currentAPIKeyPlaceholder() {
+    if (this.app.user && this.app.user.api_key && this.app.user.api_key.length > 0) {
+      return "OpenAI API Key.  Leave blank to use your user key."
+    } else {
+      return "OpenAI API Key.  Leave blank to use this server's key."
+    }
+  }
+
   override render() {
     const header = html`
       <header>
@@ -300,7 +308,7 @@ export class ChatApp extends LitElement {
               .value=${this.app.currentChat.settings.max_tokens}
             ></chat-slider>
           </div>
-          <chat-text-area id="api-key-input" class="api-key" placeholder="OpenAI API Key.  Leave blank to use this server's key." .value=${this.app.currentChat.settings.api_key}></chat-text-area>
+          <chat-text-area id="api-key-input" class="api-key" placeholder="${this.currentAPIKeyPlaceholder()}" .value=${this.app.currentChat.settings.api_key}></chat-text-area>
           <div class="wide">
           <h3>Prompt</h3>
           <div class="flex-horizontal">
