@@ -6,6 +6,7 @@ class User:
     id: str
     name: str
     extra: str = "{}"
+    api_key: str = ""
     IS_PRIMARY_KEY = 'id'
 
 

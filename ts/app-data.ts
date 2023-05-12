@@ -163,6 +163,7 @@ export class AppData {
     chat.id = uuidv4();
     chat.loaded = true;
     chat.user_id = this.user.id;
+    chat.settings.api_key = this.user.api_key;
     this.chats.push(chat);
     this.openChat(chat);
   }
@@ -224,6 +225,9 @@ export class AppData {
           const newChat = new Chat();
           newChat.id = uuidv4();
           newChat.loaded = true;
+          if (this.user) {
+            newChat.settings.api_key = this.user.api_key;
+          }
           this.currentChat = newChat;
         }
         this.unsavedChat = null;
