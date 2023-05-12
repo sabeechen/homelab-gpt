@@ -1,4 +1,5 @@
 FROM qmcgaw/reactdevcontainer
+RUN apk update && apk upgrade
 RUN apk add python3 python3-dev py3-pip curl make automake gcc g++ subversion nodejs npm openssl openssl-dev musl-dev
 RUN curl https://sh.rustup.rs -sSf -o rust.sh
 RUN chmod 777 rust.sh
