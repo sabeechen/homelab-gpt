@@ -250,7 +250,7 @@ class Server():
         return web.json_response({
             "name": "AI Chat",
             "short_name": "AI Chat",
-            "theme_color": "#FFFFFF",
+            "theme_color": "#000000",
             "background_color": "#000000",
             "display": "standalone",
             "scope": "/",
@@ -259,7 +259,7 @@ class Server():
             "orientation": "any",
             "icons": [
                 {
-                    "src": "static/logo.svg",
+                    "src": "static/logo.png",
                     "sizes": "1024x1024"
                 }
             ]
