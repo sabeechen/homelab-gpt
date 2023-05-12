@@ -216,6 +216,9 @@ class Server():
         app.add_routes([
             web.static('/static', self.get_path('static'), show_index=False),
             web.get('/', self.index),
+            web.get('/sw.js', self.sw),
+            web.get('/workbox-d249b2c8.js', self.wb),
+            web.get('/manifest.json', self.manifest),
             web.get('/api/initialize', self.initialize),
             web.post('/api/chats', self.get_chats),
             web.post('/api/chat', self.save_chat),
@@ -236,6 +239,31 @@ class Server():
 
     async def index(self, req: web.Request):
         return web.FileResponse(self.get_path('static/index.html'))
+
+    async def sw(self, req: web.Request):
+        return web.FileResponse(self.get_path('sw.js'))
+
+    async def wb(self, req: web.Request):
+        return web.FileResponse(self.get_path('workbox-d249b2c8.js'))
+
+    async def manifest(self, req: web.Request):
+        return web.json_response({
+            "name": "AI Chat",
+            "short_name": "AI Chat",
+            "theme_color": "#FFFFFF",
+            "background_color": "#000000",
+            "display": "standalone",
+            "scope": "/",
+            "start_url": "/",
+            "description": "AI Chat with GPT",
+            "orientation": "any",
+            "icons": [
+                {
+                    "src": "static/logo.svg",
+                    "sizes": "1024x1024"
+                }
+            ]
+        })
 
     async def initialize(self, req: web.Request):
         data = {

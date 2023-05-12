@@ -76,11 +76,13 @@
     "rollup-plugin-postcss": "^4.0.2",
     "rollup-plugin-summary": "^1.4.3",
     "rollup-plugin-terser": "^7.0.2",
+    "rollup-plugin-workbox": "^7.0.1",
     "typescript": "~4.7.4",
     "uuid": "^9.0.0",
     "websocket": "^1.0.34",
     "websocket-ts": "^1.1.1",
-    "websockets": "^0.2.0"
+    "websockets": "^0.2.0",
+    "workbox-cli": "^6.5.4"
   },
   "customElements": "custom-elements.json"
 }
