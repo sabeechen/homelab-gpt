@@ -17,11 +17,13 @@ export class ChatDropDown extends LitElement {
         border: 2px solid var(--grey);
         margin: 2px;
         border-radius: 9px;
-        padding: 10px;
         display: flex;
         justify-items: center;
         align-items: center;
         width: 100%;
+        text-indent: 6px;
+        line-height: 30px;
+        padding: 10px 0px;
       }
 
 
