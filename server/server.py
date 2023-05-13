@@ -260,7 +260,8 @@ class Server():
             "icons": [
                 {
                     "src": "static/logo.png",
-                    "sizes": "1024x1024"
+                    "sizes": "850x850",
+                    "type": "image/png"
                 }
             ]
         })
