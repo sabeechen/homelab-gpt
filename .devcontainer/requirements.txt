@@ -4,4 +4,4 @@ tiktoken
 uuid
 aiosqlite
 typesc
-srp
+bsrp
