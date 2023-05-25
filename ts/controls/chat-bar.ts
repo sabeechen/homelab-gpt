@@ -27,6 +27,9 @@ export class ChatBar extends LitElement {
 
     chat-icon {
       margin-right: 5px;
+      width: 24px;
+      height: 24px;
+      display: inline-block;
     }
 
     .top-insert:hover {

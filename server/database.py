@@ -1,7 +1,10 @@
-from dataclasses import fields
+from dataclasses import fields, Field
 import aiosqlite
+from datetime import datetime
 import uuid
-from typing import List, Union
+from typing import List, Union, Type, TypeVar, Callable, Any
+
+T = TypeVar('T')
 
 
 class SQLiteDB:
@@ -27,7 +30,7 @@ class SQLiteDB:
                     create_query = create_query.rstrip(',')
                     create_query += ")"
                 async with conn.execute(create_query) as c:
-                    pass    
+                    pass
                 # Determine if any columns need to be added
                 if len(columns) > 0:
                     for missing_field_name in set([k.name for k in keys]).difference(columns):
@@ -38,7 +41,8 @@ class SQLiteDB:
                         async with conn.execute(query) as c:
                             pass
 
-    async def get_all(self, dataclass):
+    async def get_all(self, dataclass: Type[T]) -> List[T]:
+        converters = {f.name: self._converter(f) for f in fields(dataclass)}
         async with aiosqlite.connect(self.dbfile) as conn:
             async with conn.execute("SELECT * from {}".format(dataclass.__name__.lower())) as c:
                 results = await c.fetchall()
@@ -49,12 +53,13 @@ class SQLiteDB:
                     values = [r for r in row]
                     mapped_values = {}
                     for i, attr in enumerate(attrs):
-                        mapped_values[attr] = values[i]
+                        mapped_values[attr] = converters[attr](values[i])
                     obj = dataclass(**mapped_values)
                     objects.append(obj)
                 return objects
 
-    async def find_by_id(self, dataclass, id):
+    async def find_by_id(self, dataclass: Type[T], id) -> Union[T, None]:
+        converters = {f.name: self._converter(f) for f in fields(dataclass)}
         async with aiosqlite.connect(self.dbfile) as conn:
             async with conn.execute("SELECT * from {} where {}='{}'".format(dataclass.__name__.lower(), self._get_pk_field(dataclass), id)) as c:
                 for result in await c.fetchall():
@@ -62,25 +67,26 @@ class SQLiteDB:
                     values = [r for r in result]
                     mapped_values = {}
                     for i, attr in enumerate(attrs):
-                        mapped_values[attr] = values[i]
+                        mapped_values[attr] = converters[attr](values[i])
                     obj = dataclass(**mapped_values)
                     return obj
                 return None
 
-    async def find(self, dataclass, fields: Union[str, List[str]] = "*", **kwargs):
+    async def find(self, dataclass: Type[T], find_fields: Union[str, List[str]] = "*", **kwargs) -> List[T]:
+        converters = {f.name: self._converter(f) for f in fields(dataclass)}
         async with aiosqlite.connect(self.dbfile) as conn:
             where = " AND ".join(["{}=?".format(k) for k, _ in kwargs.items()])
             values = [v for _, v in kwargs.items()]
             results = []
-            if isinstance(fields, list):
-                fields = ",".join(fields)
-            async with conn.execute("SELECT {} from {} WHERE {}".format(fields, dataclass.__name__.lower(), where), values) as c:
+            if isinstance(find_fields, list):
+                find_fields = ",".join(find_fields)
+            async with conn.execute("SELECT {} from {} WHERE {}".format(find_fields, dataclass.__name__.lower(), where), values) as c:
                 for result in await c.fetchall():
                     attrs = [r[0] for r in c.description]
                     values = [r for r in result]
                     mapped_values = {}
                     for i, attr in enumerate(attrs):
-                        mapped_values[attr] = values[i]
+                        mapped_values[attr] = converters[attr](values[i])
                     obj = dataclass(**mapped_values)
                     results.append(obj)
             return results
@@ -134,5 +140,13 @@ class SQLiteDB:
             return "BOOLEAN"
         elif t == bytes:
             return "BLOB"
+        elif t == datetime:
+            return "DATETIME"
         else:
             raise ValueError("Type not supported for SQLite: {}".format(t))
+
+    def _converter(self, f: Field) -> Callable[[Any], Any]:
+        if f.type == datetime:
+            return lambda v: datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z")
+        else:
+            return lambda v: v

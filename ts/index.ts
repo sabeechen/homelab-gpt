@@ -12,5 +12,11 @@ import './controls/chat-icon';
 import './controls/chat-radio';
 import './controls/chat-bar';
 import './controls/chat-drop-down';
+import './controls/chat-modal';
+import './controls/chat-text-box';
+import './controls/chat-autofill-polyfill';
+import './controls/chat-add-user';
+import './controls/chat-edit-user';
+import './controls/chat-login';
 import './app-data';
 import './util'

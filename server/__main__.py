@@ -3,13 +3,13 @@ import os
 import os.path
 from .server import Server
 from .database import SQLiteDB
-from .database_classes import User, Chat
+from .database_classes import User, Chat, Session
 
 
 async def main():
     data_path = os.environ.get("DATA_PATH") or "/data"
     database = SQLiteDB(os.path.join(data_path, "data.sqlite"))
-    await database.create_database([User, Chat])
+    await database.create_database([User, Chat, Session])
     server = Server(database)
     await server.start()
     while (True):

@@ -11,6 +11,8 @@ export class ChatIcon extends LitElement {
   static override styles = [defaultCSS, css`
     svg {
       vertical-align: bottom;
+      width: 100%;
+      height: 100%;
     }
   `];
 

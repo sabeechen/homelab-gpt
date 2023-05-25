@@ -73,6 +73,11 @@ export class ChatMessage extends LitElement {
       white-space: pre-wrap;
     }
 
+    chat-icon {
+      width: 32px;
+      height: 32px;
+    }
+
     pre code:not(.hljs) {
       /* styles for code without the hljs class, which means the language wasn't specified */
       background: #23241f;

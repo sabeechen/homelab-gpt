@@ -48,6 +48,23 @@
         font-size: 16px;
       }
 
+      a {
+        color: var(--white);
+      }
+
+      a:visited {
+        color: var(--white);
+      }
+
+      .input-polyfill {
+        position: absolute;
+        opacity: 0;
+        z-index: -1;
+        top: 174px;
+        left: calc(50% - 180px);
+        width: 360px;
+      }
+
       @media (max-width: 768px) {
         body {
           font-size: 13px;
@@ -57,5 +74,6 @@
   </head>
   <body>
     <chat-app></chat-app>
+    <chat-autofill-polyfill></chat-autofill-polyfill>
   </body>
 </html>

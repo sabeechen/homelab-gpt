@@ -14,7 +14,7 @@ import { ChatRadio } from './chat-radio.js';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultCSS } from "../global-styles"
 import { ChatIcon } from './chat-icon.js';
-import { mdiChatOutline, mdiCog, mdiCogOff, mdiDatabaseExportOutline, mdiNuke, mdiDatabaseImportOutline, mdiTrashCanOutline, mdiContentSave, mdiChatPlusOutline } from '@mdi/js';
+import { mdiChatOutline, mdiCog, mdiCogOff, mdiDatabaseExportOutline, mdiNuke, mdiDatabaseImportOutline, mdiTrashCanOutline, mdiContentSave, mdiChatPlusOutline, mdiLogin, mdiLogout, mdiShieldAccount } from '@mdi/js';
 import { ChatBar } from './chat-bar.js';
 import { ChatDropDown } from './chat-drop-down.js';
 import { Util } from '../util.js';
@@ -49,6 +49,10 @@ export class ChatApp extends LitElement {
         margin-right: 10px;
       }
 
+      .account-edit {
+        cursor: pointer;
+      }
+
       @keyframes spin {
         0% {
           transform: rotate(0deg);
@@ -72,11 +76,36 @@ export class ChatApp extends LitElement {
         height: 59px;
       }
 
+      header chat-button {
+        min-width: 0px;
+        margin: 5px 0px 5px 15px;
+      }
+
+      header chat-button * .chat-button {
+        margin-right: 0px;
+      }
+
       .logo {
         color: #ffffff;
         width: 42px;
         height: 42px;
         margin-right: 10px;
+      }
+
+      svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      chat-icon {
+        width: 24px;
+        height: 24px;
+      }
+
+      chat-icon.big {
+        width: 40px;
+        height: 40px;
+        margin: 5px;
       }
 
       nav {
@@ -234,8 +263,23 @@ export class ChatApp extends LitElement {
         </div>
         ${this.app.initialized ? html`
         <div class="flex-horizontal header-floater flex-center">
-          User:
-          <chat-drop-down id="user-select" .options=${this.app.users} .selected=${this.app.user} label_property="name" value_property="id" default="(Logged Out)" @input=${this._userChanged}></chat-drop-down>
+          ${!this.app.user ? html`
+          <chat-button @click=${this.login}>
+            <div class="button-content flex-horizontal flex-center">
+              <chat-icon class="button-icon" .path=${mdiLogin}></chat-icon>
+              <span>Login</span>
+            </div>
+          </chat-button>` : html`
+          <div class="account-edit flex-horizontal flex-center" @click=${this._editUser}>
+            <chat-icon class="big" .path=${mdiShieldAccount}></chat-icon>
+            ${this.app.user.name}
+          </div>
+          <chat-button title="Logout" @click=${this._logout}>
+            <div class="button-content flex-horizontal flex-center">
+              <chat-icon class="button-icon" .path=${mdiLogout}></chat-icon>
+            </div>
+          </chat-button>
+          `}
         </div>
         ` : html``}
         <div class="flex-horizontal flex-center wide desktop-only-flex">
@@ -255,6 +299,8 @@ export class ChatApp extends LitElement {
 
     return html`
       ${header}
+      <chat-modal>
+      </chat-modal>
       ${this.app.user !== null ? html`
       <chat-container class="compact-container">
         <div class="flex-horizontal wide" style="align-items: last baseline;">
@@ -429,10 +475,6 @@ export class ChatApp extends LitElement {
     this.app.bindToUpdates(() => this.updateFromApp());
   }
 
-  private async _userChanged() {
-    await this.app.changeUser(this._userSelect.selected);
-  }
-
   private _settingSummary() {
     if (!this.app.currentChat) {
       return "";
@@ -468,6 +510,22 @@ export class ChatApp extends LitElement {
     }
   }
 
+  private async _editUser() {
+    const myEvent = new CustomEvent("open-modal", {
+      detail: "chat-edit-user",
+      bubbles: true,
+      composed: true });
+    this.dispatchEvent(myEvent);
+  }
+
+  private async login() {
+    const myEvent = new CustomEvent("open-modal", {
+      detail: "chat-login",
+      bubbles: true,
+      composed: true });
+    this.dispatchEvent(myEvent);
+  }
+
   private async updateFromApp() {
     this.requestUpdate();
     if (this._chatSelect){
@@ -487,6 +545,10 @@ export class ChatApp extends LitElement {
     } finally {
       this.requestUpdate();
     }
+  }
+
+  private async _logout() {
+    await this.app.logout();
   }
 
   private async _insertTop() {

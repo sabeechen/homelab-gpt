@@ -23,6 +23,7 @@
     "noImplicitOverride": true,
     "allowJs": true,
     "declaration": false,
+    "skipLibCheck": true,
 
     "plugins": [
       {

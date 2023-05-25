@@ -1,6 +1,7 @@
 import {WebsocketBuilder, Websocket} from 'websocket-ts';
 import { v4 as uuidv4 } from 'uuid';
 import {plainToInstance, instanceToPlain, Type, Exclude} from 'class-transformer'
+import {utils, generateAPair, processChallenge, verifySession} from 'bsrp'
 
 export class Message {
   id: string;
@@ -31,6 +32,11 @@ export class User {
   name: string
   id: string
   api_key?: string = null;
+}
+
+export class Session {
+  session_id: string
+  user_id: string
 }
 
 export class Chat {
@@ -102,18 +108,21 @@ export class LocalSaveInfo {
   @Type(() => Chat)
   chat?: Chat;
 
+  @Type(() => Session)
+  session?: Session;
+
   version?: number;
 }
 
 export class AppData {
   chats: Chat[] = [];
   user: User = null;
+  session: Session = null;
 
   // Internal state, which should not be serialized
   currentChat?: Chat = null;
   unsavedChat?: Chat = null;
   models: Model[] = [];
-  users: User[] = [];
   busy = false;
   _dirtySave:NodeJS.Timeout = null;
   abortController: AbortController|undefined = undefined;
@@ -124,26 +133,50 @@ export class AppData {
   constructor() {
   }
 
-  public async changeUser(user: User) {
+  private async changeUser(user: User, session: Session) {
     if (user === null) {
       this.chats = [];
       this.user = null;
+      this.session = null;
       this.publish();
       return;
     }
     this.user = user;
+    this.session = session;
 
     const user_id = this.user.id;
     this.publish()
-    const resp = await fetch("/api/chats", {
+    let resp = await fetch("/api/chats", {
       body: JSON.stringify({user_id: user_id}),
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Session-Id": this.session.session_id,
       },
     });
-    const data = await resp.json();
-    this.chats = data.chats.map((c: any) => plainToInstance(Chat, c));
+    if (resp.status == 401) {
+      // Session is invalid, so logout
+      await this.logout();
+      return;
+    }
+    if (resp.status != 200) {
+      console.log("Failed to load chats");
+      this.chats = [];
+    } else {
+      const data = await resp.json();
+      this.chats = data.chats.map((c: any) => plainToInstance(Chat, c));
+    }
+
+    resp = await fetch("/api/user/" + user_id, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Session-Id": this.session.session_id,
+      },
+    });
+    if (resp.status == 200) {
+      this.user = plainToInstance(User, await resp.json())
+    }
 
     if (!this.currentChat) {
       this.currentChat = Chat.createEmptyChat();
@@ -175,7 +208,8 @@ export class AppData {
     await fetch("/api/chat/" + this.currentChat.id, {
       method: "DELETE",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Session-Id": this.session.session_id,
       },
     });
 
@@ -246,7 +280,13 @@ export class AppData {
 
     this.currentChat = chat;
     this.publish();
-    const resp = await fetch("/api/chat/" + chat.id);
+    const resp = await fetch("/api/chat/" + chat.id,{
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Session-Id": this.session.session_id,
+      },
+    });
     const data = plainToInstance(Chat, await resp.json());
     data.loaded = true;
     let found = false;
@@ -418,6 +458,131 @@ export class AppData {
       .build();
   }
 
+  public async createUser(name: string, password: string, api_key: string) {
+    const response = await fetch('/api/user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: name,
+        password: password,
+        api_key: api_key,
+      })
+    });
+    if (response.status == 200) {
+      const data = await response.json();
+      const user = plainToInstance(User, data.user);
+      const session = plainToInstance(Session, data.session);
+      this.changeUser(user, session);
+      this.dirty();
+    } else {
+      throw new Error("Failed to create user");
+    }
+  }
+
+  public async editUser(password: string, api_key: string) {
+    const response = await fetch('/api/user', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Session-Id': this.session.session_id,
+      },
+      body: JSON.stringify({
+        user_id: this.user.id,
+        password: password,
+        api_key: api_key,
+      })
+    });
+    if (response.status == 200) {
+      const data = await response.json();
+      const user = plainToInstance(User, data.user);
+      const session = plainToInstance(Session, data.session);
+      this.changeUser(user, session);
+      this.dirty();
+    } else {
+      throw new Error("Failed to edit user");
+    }
+  }
+
+  // A method to convert a hex encoded string to a Uint8Array
+  private hexToUint8Array(hex: string): Uint8Array {
+    const uint8Array = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < uint8Array.length; i++) {
+      const hexByte = hex.substr(i * 2, 2);
+      const parsedByte = parseInt(hexByte, 16);
+      if (isNaN(parsedByte)) {
+        throw new Error("Failed to parse hex byte: " + hexByte);
+      }
+      uint8Array[i] = parsedByte;
+    }
+    return uint8Array;
+  }
+
+  // a method to convert a Uint8Array to a hex encoded string
+  private uint8ArrayToHex(uint8Array: Uint8Array): string {
+    let hex = "";
+    for (let i = 0; i < uint8Array.length; i++) {
+      const byte = uint8Array[i];
+      hex += byte.toString(16).padStart(2, "0");
+    }
+    return hex;
+  }
+
+  public async login(name: string, password: string) {
+    // Start the SRP challenge
+    let response = await fetch('/api/login/step1', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: name
+      })
+    });
+    if (response.status != 200) {
+      throw new Error("Failed to login");
+    }
+    let data = await response.json();
+    const a_pair = generateAPair();
+    // Convert data.salt, which is a hexserialized string, into a Uint8Array, then a bigint
+    const salt = utils.toBigInteger(this.hexToUint8Array(data.s));
+    const B = utils.toBigInteger(this.hexToUint8Array(data.B));
+
+    const processed = await processChallenge(data.username, password, salt, a_pair.ephemeralA, a_pair.publicA, B);
+    const M1 = this.uint8ArrayToHex(utils.toBytes(processed.message));
+    const A = this.uint8ArrayToHex(utils.toBytes(a_pair.publicA));
+    response = await fetch('/api/login/step2', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name: data.username,
+        B: data.B,
+        A: A,
+        M1: M1
+      })
+    });
+    if (response.status != 200) {
+      throw new Error("Failed to login");
+    }
+    data = await response.json();
+    console.log(data);
+    const M2 = utils.toBigInteger(this.hexToUint8Array(data.M2))
+    const verify = await verifySession(a_pair.publicA, processed.message, processed.sessionKey, M2)
+    if (!verify) {
+      throw new Error("Failed to login");
+    }
+    this.changeUser(plainToInstance(User, data.user), plainToInstance(Session, data.session));
+    this.dirty();
+  }
+
+  public async logout() {
+    this.changeUser(null, null);
+    this.dirty();
+  }
+
   private publish() {
     if (this.publishCallback) {
       this.publishCallback();
@@ -471,6 +636,9 @@ export class AppData {
     } else {
       data.currentChat = Chat.createEmptyChat();
     }
+    if (source.session != null) {
+      data.session = source.session;
+    }
     return data;
   }
 
@@ -510,19 +678,15 @@ export class AppData {
     const resp = await fetch("/api/initialize");
     const data = await resp.json();
     this.models = data.models.map((d: any) => plainToInstance(Model, d));
-    this.users = data.users.map((d: any) => plainToInstance(User, d));
 
     // get user form local storage
     this.chats = [];
-    const find = this.user;
-    await this.changeUser(null);
-    if (find != null) {
-      for (const user of this.users) {
-        if (user.id == find.id) {
-          await this.changeUser(user); 
-        }
-      }
+    if (this.user == null || this.session == null) {
+      this.logout();
+    } else {
+      await this.changeUser(this.user, this.session);
     }
+
     this.initialized = true;
     this.publish();
   }
@@ -575,6 +739,7 @@ export class AppData {
     const serialize = new LocalSaveInfo();
     serialize.chat = chatToSave;
     serialize.user = this.user;
+    serialize.session = this.session;
     serialize.version = 3;
     localStorage.setItem("appData", JSON.stringify(instanceToPlain(serialize)));
 
@@ -585,7 +750,8 @@ export class AppData {
           body: JSON.stringify(instanceToPlain(this.currentChat)),
           method: "POST",
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Session-Id": this.session.session_id,
           },
         });
     }
