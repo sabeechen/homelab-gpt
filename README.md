@@ -2,6 +2,7 @@
 
 Web interface to chat with GPT 3.5 and 4, designed with a homelab environment in mind.
 
+![screenshot](demo.png)
 ### Motivation
 
 I created this app because I use OpenAI's API's directly to get help with programming and general questions using GPT4, but find OpenAI's playground cumbersome to use directly.  Others in my household then began finding this app handy so I made the interface simple, aesthetically pleasing, and support multiple users.  You might find it helpful if you want a convenient but powerful way to interact with Open AI's chat models and also have a docker environment set up in your homelab.
