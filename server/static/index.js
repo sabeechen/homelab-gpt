@@ -574,7 +574,7 @@ function Ar({context:e,subscribe:t}){return _e({finisher:(n,r)=>{n.addInitialize
     span {
       vertical-align: top;
     }
-  `],Hu=fe([de("chat-bar")],Hu);class $u{static formatCostUSD(e){return e>=1?`$${e.toFixed(2)}`:`¢${this._roundToTwoSignificantDigits(100*e)}`}static _roundToTwoSignificantDigits(e){const t=Math.floor(Math.log10(Math.abs(e))),n=Math.pow(10,t-1);return parseFloat((Math.round(e/n)*n).toPrecision(2))}}let Vu=class extends le{helper(){kr.properties,Re.properties,Hu.properties}async firstUpdated(){this.message&&this.message.start_edited&&(this.editing=!0,this.message.start_edited=!1,await this.updateComplete,this._editTextArea.doFocus())}render(){fi.setOptions({renderer:new fi.Renderer,highlight:function(e){return Gu.highlightAuto(e).value},langPrefix:"hljs ",pedantic:!1,gfm:!0,breaks:!1,sanitize:!0,smartLists:!0,smartypants:!1,xhtml:!1});const e=Array.from((new DOMParser).parseFromString(fi.parse(this.message.message.trim()),"text/html").body.children),t=document.createElement("div");for(const n of e)t.appendChild(n);return H`
+  `],Hu=fe([de("chat-bar")],Hu);class $u{static formatCostUSD(e){return e>=1?`$${e.toFixed(2)}`:`¢${this._roundToTwoSignificantDigits(100*e)}`}static _roundToTwoSignificantDigits(e){const t=Math.floor(Math.log10(Math.abs(e))),n=Math.pow(10,t-1);return parseFloat((Math.round(e/n)*n).toPrecision(2))}}let Vu=class extends le{helper(){kr.properties,Re.properties,Hu.properties}async firstUpdated(){this.message&&this.message.start_edited&&(this.editing=!0,this.message.start_edited=!1,await this.updateComplete,this._editTextArea.doFocus())}render(){var e;fi.setOptions({renderer:new fi.Renderer,highlight:function(e){return Gu.highlightAuto(e).value},langPrefix:"hljs ",pedantic:!1,gfm:!0,breaks:!1,sanitize:!0,smartLists:!0,smartypants:!1,xhtml:!1});const t=Array.from((new DOMParser).parseFromString(fi.parse(this.message.message.trim()),"text/html").body.children),n=document.createElement("div");for(const e of t)n.appendChild(e);for(const t of n.querySelectorAll("code.hljs")){const n=document.createElement("button");n.title="Copy to clipboard",n.classList.add("action-icon"),n.classList.add("copy-badge"),n.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><title>Copy code to clipboard</title><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>',n.onclick=()=>{navigator.clipboard.writeText(t.textContent||t.innerText)},t.insertBefore(n,t.firstChild),null===(e=t.parentElement)||void 0===e||e.classList.add("code-badge-pre")}return H`
       <div class="log flex-vertical">
         <div class="flex-horizontal">
           <div class="user">
@@ -599,7 +599,7 @@ function Ar({context:e,subscribe:t}){return _e({finisher:(n,r)=>{n.addInitialize
               <chat-icon title="Edit this message" class="action-icon action-half" .path=${"M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z"} @click=${this._edit}></chat-icon>
               <chat-icon title="Delete" class="action-icon action-half" .path=${"M9,3V4H4V6H5V19A2,2 0 0,0 7,21H17A2,2 0 0,0 19,19V6H20V4H15V3H9M9,8H11V17H9V8M13,8H15V17H13V8Z"} @click=${this._delete}></chat-icon>
               ${"length"==this.message.finish_reason?H`<chat-icon title="Continue this message" class="action-icon" .path=${"M8.5,8.64L13.77,12L8.5,15.36V8.64M6.5,5V19L17.5,12"} @click=${this._continue}></chat-icon>`:H``}
-            </div>${t}</div>`}</div>
+            </div>${n}</div>`}</div>
         ${this.message.error?H`
           <div class="flex-horizontal flex-center error-container">
             <chat-icon class="warn-icon" .path=${"M12,2L1,21H23M12,6L19.53,19H4.47M11,10V14H13V10M11,16V18H13V16"} .color=${_`#f93333`}></chat-icon><span class="error-message">${this.message.error}</span>
@@ -720,6 +720,16 @@ function Ar({context:e,subscribe:t}){return _e({finisher:(n,r)=>{n.addInitialize
       margin-left: 4px;
       margin-bottom: 5px;
       padding: 2px;
+    }
+    .copy-badge {
+      position: absolute;
+      right: 0px;
+      top: 0px;
+      background: none;
+      border: none;
+    }
+    .code-badge-pre {
+      position: relative; 
     }
   `],fe([Ar({context:Ir}),pe({attribute:!1}),Te("design:type",Function)],Vu.prototype,"app",void 0),fe([pe({attribute:!0}),Te("design:type",class{})],Vu.prototype,"message",void 0),fe([me({}),Te("design:type",Boolean)],Vu.prototype,"editing",void 0),fe([ge("#edit-text-area"),Te("design:type",Re)],Vu.prototype,"_editTextArea",void 0),fe([ge("#message-rendered"),Te("design:type",HTMLDivElement)],Vu.prototype,"_messageRendered",void 0),Vu=fe([de("chat-message")],Vu);let zu=class extends le{render(){return H`
         <div class="radio-container">

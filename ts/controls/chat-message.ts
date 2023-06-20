@@ -157,6 +157,16 @@ export class ChatMessage extends LitElement {
       margin-bottom: 5px;
       padding: 2px;
     }
+    .copy-badge {
+      position: absolute;
+      right: 0px;
+      top: 0px;
+      background: none;
+      border: none;
+    }
+    .code-badge-pre {
+      position: relative; 
+    }
   `];
 
   helper() {
@@ -198,6 +208,20 @@ export class ChatMessage extends LitElement {
     const messageHTML = document.createElement("div") as HTMLDivElement;
     for (const child of children) {
       messageHTML.appendChild(child);
+    }
+    // For each "code" element with 'hljs' class, add a small "copy" button to the top right of the code block.
+    for (const code of messageHTML.querySelectorAll("code.hljs")) {
+      const copyButton = document.createElement("button");
+      copyButton.title = "Copy to clipboard";
+      copyButton.classList.add("action-icon");
+      copyButton.classList.add("copy-badge");
+      copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><title>Copy code to clipboard</title><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>`;
+      copyButton.onclick = () => {
+        navigator.clipboard.writeText(code.textContent || (code as HTMLElement).innerText);
+      }
+      // Add copy button as the first element of the code block.
+      code.insertBefore(copyButton, code.firstChild);
+      code.parentElement?.classList.add("code-badge-pre");
     }
     return html`
       <div class="log flex-vertical">
