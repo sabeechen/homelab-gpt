@@ -51,7 +51,7 @@ class OpenAiModel:
 
 
 MODELS: Dict[str, OpenAiModel] = {
-    GPT3: OpenAiModel(GPT3, "GPT3💲", 0.002 / 1000, 0.002 / 1000, 1024 * 4 - 1, tiktoken.encoding_for_model(GPT3)),
+    GPT3: OpenAiModel(GPT3, "GPT3💲", 0.002 / 1000, 0.0015 / 1000, 1024 * 4 - 1, tiktoken.encoding_for_model(GPT3)),
     GPT4: OpenAiModel(GPT4, "GPT4💵", 0.06 / 1000, 0.03 / 1000, 1024 * 8 - 1, tiktoken.encoding_for_model(GPT4)),
     GPT4_32K: OpenAiModel(GPT4_32K, "GPT4-32K💰", 0.012 / 1000, 0.06 /
                           1000, 1024 * 32 - 1, tiktoken.encoding_for_model(GPT4_32K))
