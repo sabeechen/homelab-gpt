@@ -3,7 +3,7 @@ import {customElement, property, state, query} from 'lit/decorators.js';
 import {consume} from '@lit-labs/context';
 import {type AppData, appContext} from '../app-context';
 import { Message } from '../app-data';
-import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPencil, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan, mdiContentSaveEdit, mdiClose, mdiDiceMultiple } from '@mdi/js';
+import { mdiAlertOutline, mdiChatQuestion, mdiContentCopy, mdiHuman, mdiPencil, mdiPlayOutline, mdiReplay, mdiRobotExcitedOutline, mdiTrashCan, mdiContentSaveEdit, mdiClose, mdiDiceMultiple, mdiCodeTags } from '@mdi/js';
 import { ChatIcon } from './chat-icon';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -35,6 +35,9 @@ export class ChatMessage extends LitElement {
 
   @state({})
   editing: boolean;
+
+  @state({})
+  format = true;
 
   @query("#edit-text-area")
   _editTextArea: ChatTextArea;
@@ -184,41 +187,47 @@ export class ChatMessage extends LitElement {
   }
 
   override render() {
-    marked.setOptions({
-      renderer: new marked.Renderer(),
-      highlight: function (code) {
-        return hljs.highlightAuto(code).value;
-      },
-      langPrefix: 'hljs ',
-      pedantic: false,
-      gfm: true,
-      breaks: false,
-      sanitize: true,
-      smartLists: true,
-      smartypants: false,
-      xhtml: false,
-    });
+    let messageHTML = null;
+    if (this.format) {
+      marked.setOptions({
+        renderer: new marked.Renderer(),
+        highlight: function (code) {
+          return hljs.highlightAuto(code).value;
+        },
+        langPrefix: 'hljs ',
+        pedantic: false,
+        gfm: true,
+        breaks: false,
+        sanitize: true,
+        smartLists: true,
+        smartypants: false,
+        xhtml: false,
+      });
 
-    // Lit makes us return a single element, but adding nodes to a different part of the DOM removes them from the current parent.
-    // So first copy the child list then add them to a new div.
-    const children = Array.from(new DOMParser().parseFromString(marked.parse(this.message.message.trim()), "text/html").body.children);
-    const messageHTML = document.createElement("div") as HTMLDivElement;
-    for (const child of children) {
-      messageHTML.appendChild(child);
-    }
-    // For each "code" element with 'hljs' class, add a small "copy" button to the top right of the code block.
-    for (const code of messageHTML.querySelectorAll("code")) {
-      const copyButton = document.createElement("button");
-      copyButton.title = "Copy to clipboard";
-      copyButton.classList.add("action-icon");
-      copyButton.classList.add("copy-badge");
-      copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>`;
-      copyButton.onclick = () => {
-        navigator.clipboard.writeText(code.textContent || (code as HTMLElement).innerText);
+      // Lit makes us return a single element, but adding nodes to a different part of the DOM removes them from the current parent.
+      // So first copy the child list then add them to a new div.
+      const children = Array.from(new DOMParser().parseFromString(marked.parse(this.message.message.trim()), "text/html").body.children);
+      messageHTML = document.createElement("div") as HTMLDivElement;
+      for (const child of children) {
+        messageHTML.appendChild(child);
       }
-      // Add copy button as the first element of the code block.
-      code.insertBefore(copyButton, code.firstChild);
-      code.parentElement?.classList.add("code-badge-pre");
+      // For each "code" element with 'hljs' class, add a small "copy" button to the top right of the code block.
+      for (const code of messageHTML.querySelectorAll("code")) {
+        const copyButton = document.createElement("button");
+        copyButton.title = "Copy to clipboard";
+        copyButton.classList.add("action-icon");
+        copyButton.classList.add("copy-badge");
+        copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>`;
+        copyButton.onclick = () => {
+          navigator.clipboard.writeText(code.textContent || (code as HTMLElement).innerText);
+        }
+        // Add copy button as the first element of the code block.
+        code.insertBefore(copyButton, code.firstChild);
+        code.parentElement?.classList.add("code-badge-pre");
+      }
+    } else {
+      messageHTML = document.createElement("pre") as HTMLPreElement;
+      messageHTML.textContent = this.message.message;
     }
     return html`
       <div class="log flex-vertical">
@@ -244,6 +253,7 @@ export class ChatMessage extends LitElement {
               `}
               <chat-icon title="Edit this message" class="action-icon action-half" .path=${mdiPencil} @click=${this._edit}></chat-icon>
               <chat-icon title="Delete" class="action-icon action-half" .path=${mdiTrashCan} @click=${this._delete}></chat-icon>
+              <chat-icon title="Toggle formatting" class="action-icon action-half" .path=${mdiCodeTags} @click=${this.toggleFormatting}></chat-icon>
               ${this.message.finish_reason == "length" ?
               html`<chat-icon title="Continue this message" class="action-icon" .path=${mdiPlayOutline} @click=${this._continue}></chat-icon>` : html``}
             </div>${messageHTML}</div>`}</div>
@@ -296,6 +306,10 @@ export class ChatMessage extends LitElement {
     this._editTextArea.value = this.message.message;
     this._editTextArea.doFocus();
     this._editTextArea.rows = Math.ceil(height / (fontSize * 1.25));
+  }
+
+  private toggleFormatting() {
+    this.format = !this.format;
   }
 
   private _saveEdit() {
