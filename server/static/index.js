@@ -574,7 +574,7 @@ function Ar({context:e,subscribe:t}){return _e({finisher:(n,r)=>{n.addInitialize
     span {
       vertical-align: top;
     }
-  `],Hu=fe([de("chat-bar")],Hu);class $u{static formatCostUSD(e){return e>=1?`$${e.toFixed(2)}`:`¢${this._roundToTwoSignificantDigits(100*e)}`}static _roundToTwoSignificantDigits(e){const t=Math.floor(Math.log10(Math.abs(e))),n=Math.pow(10,t-1);return parseFloat((Math.round(e/n)*n).toPrecision(2))}}let Vu=class extends le{helper(){kr.properties,Re.properties,Hu.properties}async firstUpdated(){this.message&&this.message.start_edited&&(this.editing=!0,this.message.start_edited=!1,await this.updateComplete,this._editTextArea.doFocus())}render(){var e;fi.setOptions({renderer:new fi.Renderer,highlight:function(e){return Gu.highlightAuto(e).value},langPrefix:"hljs ",pedantic:!1,gfm:!0,breaks:!1,sanitize:!0,smartLists:!0,smartypants:!1,xhtml:!1});const t=Array.from((new DOMParser).parseFromString(fi.parse(this.message.message.trim()),"text/html").body.children),n=document.createElement("div");for(const e of t)n.appendChild(e);for(const t of n.querySelectorAll("code.hljs")){const n=document.createElement("button");n.title="Copy to clipboard",n.classList.add("action-icon"),n.classList.add("copy-badge"),n.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><title>Copy code to clipboard</title><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>',n.onclick=()=>{navigator.clipboard.writeText(t.textContent||t.innerText)},t.insertBefore(n,t.firstChild),null===(e=t.parentElement)||void 0===e||e.classList.add("code-badge-pre")}return H`
+  `],Hu=fe([de("chat-bar")],Hu);class $u{static formatCostUSD(e){return e>=1?`$${e.toFixed(2)}`:`¢${this._roundToTwoSignificantDigits(100*e)}`}static _roundToTwoSignificantDigits(e){const t=Math.floor(Math.log10(Math.abs(e))),n=Math.pow(10,t-1);return parseFloat((Math.round(e/n)*n).toPrecision(2))}}let Vu=class extends le{helper(){kr.properties,Re.properties,Hu.properties}async firstUpdated(){this.message&&this.message.start_edited&&(this.editing=!0,this.message.start_edited=!1,await this.updateComplete,this._editTextArea.doFocus())}render(){var e;fi.setOptions({renderer:new fi.Renderer,highlight:function(e){return Gu.highlightAuto(e).value},langPrefix:"hljs ",pedantic:!1,gfm:!0,breaks:!1,sanitize:!0,smartLists:!0,smartypants:!1,xhtml:!1});const t=Array.from((new DOMParser).parseFromString(fi.parse(this.message.message.trim()),"text/html").body.children),n=document.createElement("div");for(const e of t)n.appendChild(e);for(const t of n.querySelectorAll("code")){const n=document.createElement("button");n.title="Copy to clipboard",n.classList.add("action-icon"),n.classList.add("copy-badge"),n.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>',n.onclick=()=>{navigator.clipboard.writeText(t.textContent||t.innerText)},t.insertBefore(n,t.firstChild),null===(e=t.parentElement)||void 0===e||e.classList.add("code-badge-pre")}return H`
       <div class="log flex-vertical">
         <div class="flex-horizontal">
           <div class="user">
@@ -627,14 +627,6 @@ function Ar({context:e,subscribe:t}){return _e({finisher:(n,r)=>{n.addInitialize
       flex-grow: 1;
       white-space: pre-wrap;
       overflow: auto;
-    }
-
-    .message * ol {
-      white-space: initial;
-    }
-
-    .message * ol li {
-      white-space: pre-wrap;
     }
 
     chat-icon {
@@ -727,9 +719,14 @@ function Ar({context:e,subscribe:t}){return _e({finisher:(n,r)=>{n.addInitialize
       top: 0px;
       background: none;
       border: none;
+      cursor: pointer;
     }
     .code-badge-pre {
       position: relative; 
+    }
+
+    .message * ul, .message * ol {
+      white-space: normal;
     }
   `],fe([Ar({context:Ir}),pe({attribute:!1}),Te("design:type",Function)],Vu.prototype,"app",void 0),fe([pe({attribute:!0}),Te("design:type",class{})],Vu.prototype,"message",void 0),fe([me({}),Te("design:type",Boolean)],Vu.prototype,"editing",void 0),fe([ge("#edit-text-area"),Te("design:type",Re)],Vu.prototype,"_editTextArea",void 0),fe([ge("#message-rendered"),Te("design:type",HTMLDivElement)],Vu.prototype,"_messageRendered",void 0),Vu=fe([de("chat-message")],Vu);let zu=class extends le{render(){return H`
         <div class="radio-container">

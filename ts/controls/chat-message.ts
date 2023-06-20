@@ -65,14 +65,6 @@ export class ChatMessage extends LitElement {
       overflow: auto;
     }
 
-    .message * ol {
-      white-space: initial;
-    }
-
-    .message * ol li {
-      white-space: pre-wrap;
-    }
-
     chat-icon {
       width: 32px;
       height: 32px;
@@ -163,9 +155,14 @@ export class ChatMessage extends LitElement {
       top: 0px;
       background: none;
       border: none;
+      cursor: pointer;
     }
     .code-badge-pre {
       position: relative; 
+    }
+
+    .message * ul, .message * ol {
+      white-space: normal;
     }
   `];
 
@@ -210,12 +207,12 @@ export class ChatMessage extends LitElement {
       messageHTML.appendChild(child);
     }
     // For each "code" element with 'hljs' class, add a small "copy" button to the top right of the code block.
-    for (const code of messageHTML.querySelectorAll("code.hljs")) {
+    for (const code of messageHTML.querySelectorAll("code")) {
       const copyButton = document.createElement("button");
       copyButton.title = "Copy to clipboard";
       copyButton.classList.add("action-icon");
       copyButton.classList.add("copy-badge");
-      copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><title>Copy code to clipboard</title><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>`;
+      copyButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z" /></svg>`;
       copyButton.onclick = () => {
         navigator.clipboard.writeText(code.textContent || (code as HTMLElement).innerText);
       }
