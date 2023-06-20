@@ -213,6 +213,9 @@ export class ChatMessage extends LitElement {
       }
       // For each "code" element with 'hljs' class, add a small "copy" button to the top right of the code block.
       for (const code of messageHTML.querySelectorAll("code")) {
+        if (!(code.parentElement instanceof HTMLPreElement)) {
+          continue;
+        }
         const copyButton = document.createElement("button");
         copyButton.title = "Copy to clipboard";
         copyButton.classList.add("action-icon");
