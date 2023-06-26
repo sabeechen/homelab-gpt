@@ -7,6 +7,12 @@ from typing import List, Union, Type, TypeVar, Callable, Any
 T = TypeVar('T')
 
 
+def _convertDateTime(v):
+    if v is None or v == "None":
+        return None
+    return datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z")
+
+
 class SQLiteDB:
     def __init__(self, dbfile):
         self.dbfile = dbfile
@@ -147,6 +153,6 @@ class SQLiteDB:
 
     def _converter(self, f: Field) -> Callable[[Any], Any]:
         if f.type == datetime:
-            return lambda v: datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z") if v is not None else None
+            return _convertDateTime
         else:
             return lambda v: v
