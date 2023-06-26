@@ -44,9 +44,12 @@ class Chat:
     shared: bool = False
     data: str = ""
     temporary_name: str = ""
+    automatic_name: str = ""
     total_spending: float = 0
+    last_saved: datetime = datetime.min
     IS_PRIMARY_KEY = 'id'
-    REQUIRED = ["id", "user_id", "name", "shared", "temporary_name"]
+    REQUIRED = ["id", "user_id", "name", "shared",
+                "temporary_name", "automatic_name"]
 
 
 @dataclass

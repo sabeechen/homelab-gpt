@@ -7,6 +7,7 @@ import threading
 import uuid
 import tiktoken
 import random
+import os.path
 from typing import Union, Dict, List, Any
 from dataclasses import dataclass
 from .database import SQLiteDB
@@ -230,11 +231,15 @@ class Server():
         self._authLock: asyncio.Lock = asyncio.Lock()
         self._purgeTask: Union[asyncio.Task, None] = None
 
+        # an async queue used to do name generation for chats
+        self._nameQueue: asyncio.Queue = asyncio.Queue()
+
     async def start(self):
         app = web.Application()
         app.add_routes([
             web.static('/static', self.get_path('static'), show_index=False),
             web.get('/', self.index),
+            web.get('/opensearch.xml', self.opensearch),
             web.get('/sw.js', self.sw),
             web.get('/workbox-d249b2c8.js', self.wb),
             web.get('/manifest.json', self.manifest),
@@ -257,6 +262,27 @@ class Server():
         self.sessions = {s.session_id: s for s in await self.db.get_all(DBSession)}
         print("Server Started")
         self._purgeTask = asyncio.create_task(self.purgeSessions())
+
+    # async def process_chat_name_queue(self):
+    #     while True:
+    #         try:
+    #             chat_id = await self._nameQueue.get()
+
+    #             # Make a request to the AI to generate a summary of the conversation, using a truncated version of the conversation
+    #             # This is done to prevent the AI from generating a summary that is too long
+    #             chat = await self.db.find_by_id(DBChat, chat_id)
+    #             if chat is None:
+    #                 continue
+    #             chat_messages = json.loads(chat.data)
+    #             ai_messages = []
+    #             for message in chat_messages:
+    #                 if message['role'] == 'assistant':
+    #                     ai_messages.append(message['message'])
+
+    #             await self.db.update(DBChat, chat_id, name=name)
+    #         except Exception as e:
+    #             await asyncio.sleep(5)
+    #             print(e)
 
     # takes in a path and returns the fully qualified path relative to this file
     def get_path(self, path):
@@ -308,12 +334,32 @@ class Server():
             ]
         })
 
+    async def opensearch(self, req: web.Request):
+        base = os.environ.get("BASE_DOMAIN")
+        if base is None:
+            base = req.scheme + "://" + req.host + \
+                os.path.abspath(os.path.join(req.path, ".."))
+        xml = f"""<?xml version="1.0"?>
+        <OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/" xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+            <ShortName>AI Chat</ShortName>
+            <Description>Chat with GPT</Description>
+            <Url type="application/atom+xml" template="{base}/?search={"{"}searchTerms{"}"}"/>
+            <Url type="text/html" template="{base}/?search={"{"}searchTerms{"}"}"/>
+            <InputEncoding>UTF-8</InputEncoding>
+            <Image height="16" width="16" type="image/x-icon">{base}/static/logo.svg?version=6</Image>
+        </OpenSearchDescription>"""
+        return web.Response(text=xml, content_type="application/opensearchdescription+xml")
+
     async def validate_session(self, req, session_id=None, user_id=None) -> Union[DBSession, None]:
         if session_id is None:
-            session_id = req.headers.get('Session-Id')
+            session_id = req.headers.get('Session-Id', None)
+        if session_id is None:
+            session_id = req.cookies.get('session_id', None)
         if user_id is None:
-            user_id = req.headers.get('User-Id')
-        if not session_id or not session_id:
+            user_id = req.headers.get('User-Id', None)
+        if user_id is None:
+            user_id = req.cookies.get('user_id', None)
+        if not session_id or not user_id:
             return None
         session = self.sessions.get(session_id)
         if not session:
@@ -521,8 +567,8 @@ class Server():
             M1 = bytes.fromhex(data['M1'])
 
             all_users = await self.db.get_all(DBUSer)
-            users = list(filter(lambda u: u.name.lower()
-                         == username.lower(), all_users))
+            users: List[DBUSer] = list(filter(lambda u: u.name.lower()
+                                              == username.lower(), all_users))
             if (len(users) == 0):
                 return await self.returnWithDelay(started, {"error": "Login failed"}, status=401)
             user = users[0]
@@ -558,7 +604,12 @@ class Server():
                 'user': UserBasic(user),
                 'M2': M2.hex()
             }
-            return await self.returnWithDelay(started, ret)
+            resp = await self.returnWithDelay(started, ret)
+            resp.set_cookie("session_id", session.session_id, httponly=True,
+                            secure=True, max_age=31_536_000)  # One year in seconds
+            resp.set_cookie("user_id", str(user.id), httponly=True,
+                            secure=True, max_age=31_536_000)  # One year in seconds
+            return resp
 
     async def returnWithDelay(self, started: datetime, resp: Dict[str, Any], status: int = 200, min_wait: timedelta = timedelta(seconds=0.5)):
         send = started + min_wait
