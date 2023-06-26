@@ -346,7 +346,7 @@ class Server():
             <Url type="application/atom+xml" template="{base}/?search={"{"}searchTerms{"}"}"/>
             <Url type="text/html" template="{base}/?search={"{"}searchTerms{"}"}"/>
             <InputEncoding>UTF-8</InputEncoding>
-            <Image height="16" width="16" type="image/x-icon">{base}/static/logo.svg?version=6</Image>
+            <Image height="16" width="16" type="image/x-icon">{base}/static/logo.svg?version=7</Image>
         </OpenSearchDescription>"""
         return web.Response(text=xml, content_type="application/opensearchdescription+xml")
 

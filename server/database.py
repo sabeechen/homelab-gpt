@@ -147,6 +147,6 @@ class SQLiteDB:
 
     def _converter(self, f: Field) -> Callable[[Any], Any]:
         if f.type == datetime:
-            return lambda v: datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z")
+            return lambda v: datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z") if v is not None else None
         else:
             return lambda v: v
