@@ -10,7 +10,10 @@ T = TypeVar('T')
 def _convertDateTime(v):
     if v is None or v == "None":
         return None
-    return datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z")
+    try:
+        return datetime.strptime(v, "%Y-%m-%d %H:%M:%S.%f%z")
+    except:
+        return None
 
 
 class SQLiteDB:
