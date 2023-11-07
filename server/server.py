@@ -62,11 +62,11 @@ MODELS: Dict[str, OpenAiModel] = {
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
 
 
+# TODO: The api natively supports async now, so this awful hack should be removed
 def chat_stream_wrapper(api_key: str, **kwargs):  # Your wrapper for async use
     openai.api_key = api_key
     response = openai.chat.completions.create(stream=True, **kwargs)
     collected_chunks = []
-    openai.types
     collected_messages = []
     for chunk in response:
         collected_chunks.append(chunk)  # save the event response
