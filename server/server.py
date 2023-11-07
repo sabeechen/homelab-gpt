@@ -20,6 +20,8 @@ from bsrp.server import (
     generate_salt_and_verifier,
     verify_session as server_verify_session,
 )
+from openai import AsyncOpenAI
+import traceback
 
 GPT3 = 'gpt-3.5-turbo-1106'
 GPT4 = 'gpt-4'
@@ -62,17 +64,18 @@ DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
 
 def chat_stream_wrapper(api_key: str, **kwargs):  # Your wrapper for async use
     openai.api_key = api_key
-    response = openai.ChatCompletion.create(stream=True, **kwargs)
+    response = openai.chat.completions.create(stream=True, **kwargs)
     collected_chunks = []
+    openai.types
     collected_messages = []
     for chunk in response:
         collected_chunks.append(chunk)  # save the event response
-        chunk_message = chunk['choices'][0]['delta']  # extract the message
-        collected_messages.append(chunk_message)  # save the message
-        full_reply_content = ''.join(
-            [m.get('content', '') for m in collected_messages])
+        chunk_message = chunk.choices[0].delta  # extract the message
+        if chunk_message.content:
+            collected_messages.append(chunk_message.content)  # save the message
+        full_reply_content = ''.join(collected_messages)
         yield {
-            "finish_reason": chunk['choices'][0]['finish_reason'],
+            "finish_reason": chunk.choices[0].finish_reason,
             "content": full_reply_content
         }
 
@@ -183,6 +186,7 @@ class ChatStreamManager():
                 task.result()
         except Exception as e:
             last_message["error"] = str(e)
+            traceback.print_exception(type(e), e, e.__traceback__)
             asyncio.run_coroutine_threadsafe(
                 self._handle_write(json.dumps(last_message)), loop)
         finally:

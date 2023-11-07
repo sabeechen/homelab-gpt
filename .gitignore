@@ -8,3 +8,4 @@ server/static/build/
 .env
 server/**/*.js.map
 data.sqlite
+.venv
