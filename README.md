@@ -66,7 +66,7 @@ docker build -t chatgpt .
 
 2. #### Install node dependencies
    ```bash
-   npm i
+   npm i -g
    ```
 3. Store your OpenAI API key in ```.env``` file
    ```bash
