@@ -22,7 +22,10 @@ from bsrp.server import (
 )
 from openai import AsyncOpenAI
 import traceback
-
+from openai.types.chat.chat_completion_user_message_param import ChatCompletionUserMessageParam
+from openai.types.chat.chat_completion_system_message_param import ChatCompletionSystemMessageParam
+from openai.types.chat.chat_completion_assistant_message_param import ChatCompletionAssistantMessageParam
+from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
 GPT3 = 'gpt-3.5-turbo-1106'
 GPT4 = 'gpt-4'
 GPT4_TURBO = 'gpt-4-1106-preview'
@@ -62,35 +65,12 @@ MODELS: Dict[str, OpenAiModel] = {
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
 
 
-# TODO: The api natively supports async now, so this awful hack should be removed
-def chat_stream_wrapper(api_key: str, **kwargs):  # Your wrapper for async use
-    openai.api_key = api_key
-    response = openai.chat.completions.create(stream=True, **kwargs)
-    collected_chunks = []
-    collected_messages = []
-    for chunk in response:
-        collected_chunks.append(chunk)  # save the event response
-        chunk_message = chunk.choices[0].delta  # extract the message
-        if chunk_message.content:
-            collected_messages.append(chunk_message.content)  # save the message
-        full_reply_content = ''.join(collected_messages)
-        yield {
-            "finish_reason": chunk.choices[0].finish_reason,
-            "content": full_reply_content
-        }
-
-
-async def async_iterable(blocking_method, *args, **kwargs):
-    for result in await asyncio.to_thread(blocking_method, *args, **kwargs):
-        yield result
-
-
 class ChatStreamManager():
     def __init__(self, ws: web.WebSocketResponse):
         self._ws = ws
         self._read_task = None
         self._write_task = None
-        self._read_thread: threading.Thread | None = None
+        self._completion_task = None
         self._write_queue = asyncio.Queue(1000)
         self._run = True
         self._stopwriting = False
@@ -115,11 +95,13 @@ class ChatStreamManager():
             msg = await self._write_queue.get()
             await self._ws.send_str(msg)
 
-    async def _handle_write(self, data):
+    async def _handle_write(self, data: Any):
+        if not isinstance(data, str):
+            data = json.dumps(data)
         # TODO: consider emptying the queue
         await self._write_queue.put(data)
 
-    def _getModel(self, model: str):
+    def _getModel(self, model: str) -> OpenAiModel:
         return MODELS.get(model, MODELS.get(GPT4))
 
     async def handle_chat(self, data):
@@ -132,29 +114,30 @@ class ChatStreamManager():
         message_start = data.get("continuation", "")
         api_key = data.get("api_key", os.environ.get('OPENAI_API_KEY'))
         if len(api_key) == 0:
-            api_key = os.environ.get('OPENAI_API_KEY')
+            api_key = os.environ.get('OPENAI_API_KEY', "")
         # Format a chat request to the OpenAI API
-        api_messages: List[Dict[str, str]] = [
-            {"role": "system", "content": prompt}]
+        api_messages: list[ChatCompletionMessageParam] = [
+            ChatCompletionSystemMessageParam(content=prompt, role="system")]
         model_data = self._getModel(model)
         temperature = data.get('temperature', 1.0)
         for message in messages:
-            api_message = {
-                "role": message.get("role", "user"),
-                "content": message.get("message", "")
-            }
-            api_messages.append(api_message)
-        self._read_thread = threading.Thread(target=self.request_chat, args=(message_start, model_data, asyncio.get_event_loop(), api_key), kwargs={
-                                             'model': model, 'messages': api_messages, 'temperature': temperature, 'max_tokens': max_tokens})
-        self._read_thread.start()
+            role = message.get("role", "user")
+            if role == "user":
+                api_messages.append(ChatCompletionUserMessageParam(
+                    content=message.get("message", ""), role="user"))
+            else:
+                api_messages.append(ChatCompletionAssistantMessageParam(
+                    content=message.get("message", ""), role="assistant"))
+        task = self.request_chat(message_start, model_data, api_key, api_messages, temperature, max_tokens)
+        self._completion_task = asyncio.create_task(task)
 
-    def request_chat(self, message_start: str, model_data: OpenAiModel, loop, api_key: str, **kwargs):
+    async def request_chat(self, message_start: str, model_data: OpenAiModel, api_key: str, messages: list[ChatCompletionMessageParam], temperature: float, max_tokens: int):
         prompt_tokens = model_data.tokenCount(
-            json.dumps(kwargs["messages"], separators=(',', ':')))
+            json.dumps(messages, separators=(',', ':')))
 
         max_allowed = model_data.maxTokens - prompt_tokens
-        if (kwargs['max_tokens'] > max_allowed):
-            kwargs['max_tokens'] = max_allowed
+        if (max_tokens > max_allowed):
+            max_tokens = max_allowed
         completion_tokens = 0
         if (len(message_start) > 0):
             message_start += " "
@@ -168,35 +151,35 @@ class ChatStreamManager():
             'role': 'assistant'
         }
         try:
-            for chunk in chat_stream_wrapper(api_key, **kwargs):
-                if not self._run:
-                    return
+            client = AsyncOpenAI(api_key=api_key)
+            stream = await client.chat.completions.create(messages=messages, model=model_data.value, stream=True, temperature=temperature, max_tokens=max_tokens)
+            full_message = message_start
+            async for chunk in stream:
+                full_message += chunk.choices[0].delta.content or ""
                 completion_tokens += 1
                 last_message = {
                     'cost_tokens_completion': completion_tokens,
                     'cost_tokens_prompt': prompt_tokens,
                     'cost_usd': prompt_tokens * model_data.token_cost_prompt + completion_tokens * model_data.token_cost_completion,
-                    'message': message_start + chunk['content'],
-                    'finish_reason': chunk['finish_reason'],
+                    'message': full_message,
+                    'finish_reason': chunk.choices[0].finish_reason,
                     'id': self.id,
                     'role': 'assistant'
                 }
-                task = asyncio.run_coroutine_threadsafe(
-                    self._handle_write(json.dumps(last_message)), loop)
-                task.result()
+                await self._handle_write(last_message)
         except Exception as e:
             last_message["error"] = str(e)
             traceback.print_exception(type(e), e, e.__traceback__)
-            asyncio.run_coroutine_threadsafe(
-                self._handle_write(json.dumps(last_message)), loop)
+            await self._handle_write(last_message)
         finally:
-            asyncio.run_coroutine_threadsafe(self.stop(), loop)
+            await self.stop()
 
     async def stop(self, error=None):
         self._stop.set()
         self._run = False
-        if self._read_thread is not None:
-            self._read_thread.join()
+        if self._completion_task is not None:
+            self._completion_task.cancel()
+            await self._completion_task
         if self._read_task is not None:
             self._read_task.cancel()
             await self._read_task
