@@ -28,7 +28,7 @@ export class Model {
 export class Settings {
   determinism = 50;
   max_tokens = 1000;
-  model = 'gpt-4';
+  model = 'gpt-4-0125-preview';
   api_key = '';
   prompt = '';
 }
