@@ -218,7 +218,7 @@ export class ChatMessage extends LitElement {
         for (const block of latexBlocks) {
           const latex = block.substring(8, block.length - 3);
           const guid = uuidv4();
-          messageText = messageText.replace(block, guid);
+          messageText = messageText.replace(block, "`" + guid + "`");
           latexMappingsBlocks[guid] = latex;
         }
       }
@@ -229,7 +229,7 @@ export class ChatMessage extends LitElement {
         for (const block of latexBlocks2) {
           const latex = block.substring(3, block.length - 3);
           const guid = uuidv4();
-          messageText = messageText.replace(block, guid);
+          messageText = messageText.replace(block, "`" + guid + "`");
           latexMappingsBlocks[guid] = latex;
         }
       }
@@ -251,12 +251,6 @@ export class ChatMessage extends LitElement {
       messageHTML = document.createElement("div") as HTMLDivElement;
       for (const child of children) {
         messageHTML.appendChild(child);
-        const text = child.textContent;
-        if (latexMappingsBlocks[text])
-        {
-          child.innerHTML = "";
-          katex.render(latexMappingsBlocks[text], child as HTMLElement, {throwOnError: false, output: "mathml", displayMode: true});
-        }
 
         // Search through the child nodes for any text nodes that contain the sentinal guids for inline latex and replace them with the rendered latex. Markdown shold have rendered the guids inside "code" elements.
         for (const node of child.querySelectorAll("code")) {
@@ -267,6 +261,10 @@ export class ChatMessage extends LitElement {
             const newNode = document.createElement("span");
             katex.render(latex, newNode, {throwOnError: false, output: "mathml", displayMode: false});
             node.parentElement.replaceChild(newNode, node);
+          }
+          else if(latexMappingsBlocks[text])
+          {
+            katex.render(latexMappingsBlocks[text], node, {throwOnError: false, output: "mathml", displayMode: true});
           }
         }
       }
