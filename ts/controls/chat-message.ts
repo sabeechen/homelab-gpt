@@ -224,7 +224,7 @@ export class ChatMessage extends LitElement {
       }
 
       // latext blocks can also start with "/[" and end with "/]".  Replace those with seintinals too.
-      const latexBlocks2 = messageText.match(/\\\[\n([\s\S]*?)\n\\\]/g);
+      const latexBlocks2 = messageText.match(/\\\[(.*?)\\\]/g);
       if (latexBlocks2) {
         for (const block of latexBlocks2) {
           const latex = block.substring(3, block.length - 3);
