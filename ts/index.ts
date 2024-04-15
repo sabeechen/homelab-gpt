@@ -19,4 +19,5 @@ import './controls/chat-add-user';
 import './controls/chat-edit-user';
 import './controls/chat-login';
 import './app-data';
-import './util'
+import './util';
+import 'katex/dist/katex.min.css';

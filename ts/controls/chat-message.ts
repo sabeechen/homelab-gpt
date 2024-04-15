@@ -12,6 +12,8 @@ import { ChatTextArea } from './chat-text-area';
 import {hljs as hljsCss } from "../css"
 import { ChatBar } from './chat-bar';
 import { Util } from '../util'
+import katex from 'katex';
+import {v4 as uuidv4} from 'uuid';
 
 /**
  * A chat message shown in the chat log.
@@ -189,6 +191,7 @@ export class ChatMessage extends LitElement {
   override render() {
     let messageHTML = null;
     if (this.format) {
+
       marked.setOptions({
         renderer: new marked.Renderer(),
         highlight: function (code) {
@@ -204,13 +207,70 @@ export class ChatMessage extends LitElement {
         xhtml: false,
       });
 
+      let messageText = this.message.message.trim();
+
+      // First, identify any markdown ```latex code blocks and handle them first.  we're going to "inject" the rendered latex into the message text
+      // after the reaminider of it is parsed as markdown, so first we want to replace each latex block with a sentinal guid that will later be replaced
+      // with the rendered latex.
+      const latexMappingsBlocks: {[guid: string]: string} = {};
+      const latexBlocks = messageText.match(/```latex\n([\s\S]*?)\n```/g);
+      if (latexBlocks) {
+        for (const block of latexBlocks) {
+          const latex = block.substring(8, block.length - 3);
+          const guid = uuidv4();
+          messageText = messageText.replace(block, guid);
+          latexMappingsBlocks[guid] = latex;
+        }
+      }
+
+      // latext blocks can also start with "/[" and end with "/]".  Replace those with seintinals too.
+      const latexBlocks2 = messageText.match(/\\\[\n([\s\S]*?)\n\\\]/g);
+      if (latexBlocks2) {
+        for (const block of latexBlocks2) {
+          const latex = block.substring(3, block.length - 3);
+          const guid = uuidv4();
+          messageText = messageText.replace(block, guid);
+          latexMappingsBlocks[guid] = latex;
+        }
+      }
+
+      // The text will also contain inline latex expressions that start with a "\(" and end with a "\)".  Replace those with seintinals too.
+      const latexMappingsInline: {[guid: string]: string} = {};
+      const inlineLatex = messageText.match(/\\\((.*?)\\\)/g);
+      if (inlineLatex) {
+        for (const latex of inlineLatex) {
+          const guid = uuidv4();
+          messageText = messageText.replace(latex, "`" + guid + "`");
+          latexMappingsInline[guid] = latex.substring(2, latex.length - 2);
+        }
+      }
+
       // Lit makes us return a single element, but adding nodes to a different part of the DOM removes them from the current parent.
       // So first copy the child list then add them to a new div.
-      const children = Array.from(new DOMParser().parseFromString(marked.parse(this.message.message.trim()), "text/html").body.children);
+      const children = Array.from(new DOMParser().parseFromString(marked.parse(messageText), "text/html").body.children);
       messageHTML = document.createElement("div") as HTMLDivElement;
       for (const child of children) {
         messageHTML.appendChild(child);
+        const text = child.textContent;
+        if (latexMappingsBlocks[text])
+        {
+          child.innerHTML = "";
+          katex.render(latexMappingsBlocks[text], child as HTMLElement, {throwOnError: false, output: "mathml", displayMode: true});
+        }
+
+        // Search through the child nodes for any text nodes that contain the sentinal guids for inline latex and replace them with the rendered latex. Markdown shold have rendered the guids inside "code" elements.
+        for (const node of child.querySelectorAll("code")) {
+          const text = node.textContent;
+          if (latexMappingsInline[text])
+          {
+            const latex = latexMappingsInline[text];
+            const newNode = document.createElement("span");
+            katex.render(latex, newNode, {throwOnError: false, output: "mathml", displayMode: false});
+            node.parentElement.replaceChild(newNode, node);
+          }
+        }
       }
+
       // For each "code" element with 'hljs' class, add a small "copy" button to the top right of the code block.
       for (const code of messageHTML.querySelectorAll("code")) {
         if (!(code.parentElement instanceof HTMLPreElement)) {
