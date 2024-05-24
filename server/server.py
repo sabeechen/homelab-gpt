@@ -29,6 +29,7 @@ from openai.types.chat.chat_completion_message_param import ChatCompletionMessag
 GPT3 = 'gpt-3.5-turbo-1106'
 GPT4 = 'gpt-4'
 GPT4_TURBO = 'gpt-4-0125-preview'
+GPT4_O = 'gpt-4o'
 
 
 @dataclass
@@ -59,7 +60,9 @@ class OpenAiModel:
 MODELS: Dict[str, OpenAiModel] = {
     GPT3: OpenAiModel(GPT3, "GPT3", 0.002 / 1000, 0.001 / 1000, 1024 * 16 - 1, tiktoken.encoding_for_model(GPT3)),
     GPT4: OpenAiModel(GPT4, "GPT4", 0.06 / 1000, 0.03 / 1000, 1024 * 8 - 1, tiktoken.encoding_for_model(GPT4)),
-    GPT4_TURBO: OpenAiModel(GPT4_TURBO, "GPT4 Turbo", 0.01 / 1000, 0.03 / 1000, 128 * 1000 - 1, tiktoken.encoding_for_model(GPT4_TURBO))
+    GPT4_TURBO: OpenAiModel(GPT4_TURBO, "GPT4 Turbo", 0.01 / 1000, 0.03 / 1000, 128 * 1000 - 1, tiktoken.encoding_for_model(GPT4_TURBO)),
+    GPT4_O: OpenAiModel(GPT4_O, "GPT4o", 0.005 / 1000, 0.015 / 1000, 128 * 1000 - 1, tiktoken.encoding_for_model(GPT4_O))
+
 }
 
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
