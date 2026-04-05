@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2019",
-    "module": "es2020",
+    "module": "ES2020",
     "lib": ["es2020", "DOM", "DOM.Iterable"],
     "declarationMap": false,
     "sourceMap": true,
@@ -16,6 +16,8 @@
     "noImplicitAny": true,
     "noImplicitThis": true,
     "moduleResolution": "node",
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

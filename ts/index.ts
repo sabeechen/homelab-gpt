@@ -1,6 +1,5 @@
 import 'es6-shim';
 import 'reflect-metadata';
-import './declarations'
 import './global-styles.ts';
 import './controls/chat-text-area';
 import './controls/chat-container';

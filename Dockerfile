@@ -14,5 +14,6 @@ RUN apt-get install -y \
 RUN apt-get update
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y && . $HOME/.cargo/env
 RUN . $HOME/.cargo/env && pip3 install -r /app/server/requirements.txt
+RUN mkdir /data && chmod 777 /data
 WORKDIR /
 CMD ["python", "-m", "app.server"]

@@ -58,6 +58,7 @@
     "@types/katex": "^0.16.7",
     "@types/marked": "^4.0.8",
     "@types/websocket": "^1.0.5",
+    "@types/uuid": "^9.0.0",
     "@typescript-eslint/eslint-plugin": "^5.25.0",
     "@typescript-eslint/parser": "^5.25.0",
     "@web/dev-server": "^0.1.31",

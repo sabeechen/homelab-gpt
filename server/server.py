@@ -31,6 +31,12 @@ GPT4 = 'gpt-4'
 GPT4_TURBO = 'gpt-4-0125-preview'
 GPT4_O = 'gpt-4o'
 
+GPT5 = "gpt-5.4"
+GPT5_MINI = "gpt-5.4-mini"
+GPT5_NANO = "gpt-5.4-nano"
+
+MODEL_DEFAULT = GPT5_NANO
+
 
 @dataclass
 class OpenAiModel:
@@ -56,13 +62,12 @@ class OpenAiModel:
             return total
         return 0
 
+ONE_M = 1000000
 
 MODELS: Dict[str, OpenAiModel] = {
-    GPT3: OpenAiModel(GPT3, "GPT3", 0.002 / 1000, 0.001 / 1000, 1024 * 16 - 1, tiktoken.encoding_for_model(GPT3)),
-    GPT4: OpenAiModel(GPT4, "GPT4", 0.06 / 1000, 0.03 / 1000, 1024 * 8 - 1, tiktoken.encoding_for_model(GPT4)),
-    GPT4_TURBO: OpenAiModel(GPT4_TURBO, "GPT4 Turbo", 0.01 / 1000, 0.03 / 1000, 128 * 1000 - 1, tiktoken.encoding_for_model(GPT4_TURBO)),
-    GPT4_O: OpenAiModel(GPT4_O, "GPT4o", 0.005 / 1000, 0.015 / 1000, 128 * 1000 - 1, tiktoken.encoding_for_model(GPT4_O))
-
+    GPT5: OpenAiModel(GPT5, "gpt", 15 / ONE_M, 2.5 / ONE_M, 272 * 1000 - 1, tiktoken.encoding_for_model("gpt-4o")),
+    GPT5_MINI: OpenAiModel(GPT5_MINI, "mini", 4.5 / ONE_M, 0.75 / ONE_M, 272 * 1000 - 1, tiktoken.encoding_for_model("gpt-4o")),
+    GPT5_NANO: OpenAiModel(GPT5_NANO, "nano", 4.5 / ONE_M, 0.75 / ONE_M, 272 * 1000 - 1, tiktoken.encoding_for_model("gpt-4o")),
 }
 
 DEFAULT_SYSTEM_MESSAGE = "You are a helpful and concise assistant."
@@ -112,7 +117,7 @@ class ChatStreamManager():
         if len(prompt) == 0:
             prompt = DEFAULT_SYSTEM_MESSAGE
         messages = data['messages']
-        model = data.get('model', GPT3)
+        model = data.get('model', MODEL_DEFAULT)
         max_tokens = data['max_tokens']
         message_start = data.get("continuation", "")
         api_key = data.get("api_key", os.environ.get('OPENAI_API_KEY'))
@@ -155,7 +160,7 @@ class ChatStreamManager():
         }
         try:
             client = AsyncOpenAI(api_key=api_key)
-            stream = await client.chat.completions.create(messages=messages, model=model_data.value, stream=True, temperature=temperature, max_tokens=max_tokens)
+            stream = await client.chat.completions.create(messages=messages, model=model_data.value, stream=True, temperature=temperature, max_completion_tokens=max_tokens)
             full_message = message_start
             async for chunk in stream:
                 full_message += chunk.choices[0].delta.content or ""
